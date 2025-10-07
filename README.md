@@ -1,1 +1,1 @@
-# WasteShark Reporsitory
+# WasteShark Repository
