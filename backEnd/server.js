@@ -1,20 +1,21 @@
-const express = require('express')
-const fs = require('fs')
+const express = require("express")
+const mqtt = require("mqtt")
+const fs = require("fs")
 const app = express()
 const port = 3000
 
 function loadApiRoutes() {
 	app.use(express.json())
 
-	app.get('/', (req, res) => {
-		res.send('Hello World!')
+	app.get("/", (req, res) => {
+		res.send("Hello World!")
 	})
 
 	app.listen(port, () => {
 		console.log(`Example app listening on port ${port}`)
 	})
 
-	loadRoutesRecursively('./api', '')
+	loadRoutesRecursively("./api", "")
 }
 
 function loadRoutesRecursively(basePath, routePrefix) {
@@ -48,6 +49,18 @@ async function setupMongoose() {
 async function setup() {
 	await setupMongoose()
 	loadApiRoutes()
+
+	const client = mqtt.connect("mqtt://127.0.0.1:1883");
+
+	client.on("connect", function () {
+		console.log("MQTT connected")
+	})
+
+	client.on("message", (topic, payload) => {
+		console.log("msg", topic, payload.toString());
+	});
+
+	client.on("error", (err) => console.error("mqtt error:", err));
 }
 
 setup()
