@@ -20,6 +20,8 @@ async function setupEndPoint(app, route) {
 			const hash = await bcrypt.hash(req.body.password, 10)
 
 			await User.create({
+				first_name: req.body.first_name,
+				last_name: req.body.last_name,
 				email: req.body.email,
 				password: hash
 			})
