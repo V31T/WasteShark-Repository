@@ -1,7 +1,11 @@
 const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken");
 const User = require(process.cwd() + "/schemas/User.js")
+require("dotenv").config()
+
 
 const authCookie = require(process.cwd() + "/middleware/authCookie.js")
+
 const method = "post"
 
 async function setupEndPoint(app, route) {
@@ -33,10 +37,29 @@ async function setupEndPoint(app, route) {
 			})
 		}
 
-		// @Colin JWT stuff here ig
+		const token = jwt.sign(
+			{
+				id: user._id,
+				email: user.email,
+			},
+			process.env.JWT_SECRET,
+			{
+				expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+			}
+		);
+
+
+		res.cookie("authToken", token, {
+			httpOnly: true,                // prevents JS access (XSS protection)
+			secure: process.env.NODE_ENV === "production", // only HTTPS in production
+			sameSite: "strict",            // CSRF protection
+			maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+		})
+
 
 		res.send({
-			success: true
+			success: true,
+			token,
 		})
 	})
 }
