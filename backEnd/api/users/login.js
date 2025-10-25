@@ -1,7 +1,11 @@
 const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken");
 const User = require(process.cwd() + "/schemas/User.js")
+require("dotenv").config()
+
 
 const authCookie = require(process.cwd() + "/middleware/authCookie.js")
+
 const method = "post"
 
 async function setupEndPoint(app, route) {
@@ -33,10 +37,23 @@ async function setupEndPoint(app, route) {
 			})
 		}
 
+		const token = jwt.sign(
+			{
+				id: user._id,
+				email: user.email,
+			},
+			process.env.JWT_SECRET,
+			{
+				expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+			}
+		);
+
+
 		// @Colin JWT stuff here ig
 
 		res.send({
-			success: true
+			success: true,
+			token,
 		})
 	})
 }
