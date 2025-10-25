@@ -15,7 +15,7 @@ function loadApiRoutes() {
 		console.log(`Example app listening on port ${port}`)
 	})
 
-	loadRoutesRecursively("./api", "")
+	loadRoutesRecursively("./api", "/api")
 }
 
 function loadRoutesRecursively(basePath, routePrefix) {
