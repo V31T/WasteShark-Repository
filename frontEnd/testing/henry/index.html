@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        console.log("Hello World");
+
+        function search() {
+            console.log("Searching...")
+            alert("Searching...")
+            window.location.href = "https://www.google.com";
+        }
+
+        function changePage() {
+            window.location.href = "https://www.google.com";
+        }
+
+    </script>
     <title>Document</title>
-    <div>HELLO</div>
 </head>
 <body>
-    
+    <div>Google</div>
+    <input type="search">
+    <button onclick="search()">Google Search</button>
+    <button>I'm Feeling Lucky</button>
+
 </body>
 </html>
