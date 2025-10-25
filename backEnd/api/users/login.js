@@ -20,6 +20,13 @@ async function setupEndPoint(app, route) {
 			})
 		}
 
+		// Check if user exists
+		if (!user) {
+			return res.status(401).send({
+				error: "Invalid credentials"
+			})
+		}
+
 		if (bcrypt.compareSync(req.body.password, user.password) === false) {
 			return res.status(401).send({
 				error: "Invalid credentials"
