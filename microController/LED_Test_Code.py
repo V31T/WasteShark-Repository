@@ -1,9 +1,9 @@
 import RPi.GPIO as GPIO
 from time import sleep, time
 
-LED_R_PIN = 13
-LED_G_PIN = 12
-LED_B_PIN = 18
+LED_R_PIN = 29
+LED_G_PIN = 31
+LED_B_PIN = 36
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup([LED_R_PIN, LED_G_PIN, LED_B_PIN], GPIO.OUT)
