@@ -2,6 +2,9 @@
 module.exports = (app, route) => {
   app.post(route, async (req, res) => {
     try {
+
+      console.log(`Incoming POST request to ${route}`);
+      
       const { status } = req.body;
 
       console.log("Received update status request:", status);
