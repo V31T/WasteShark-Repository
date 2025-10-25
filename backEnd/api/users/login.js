@@ -49,7 +49,13 @@ async function setupEndPoint(app, route) {
 		);
 
 
-		// @Colin JWT stuff here ig
+		res.cookie("authToken", token, {
+			httpOnly: true,                // prevents JS access (XSS protection)
+			secure: process.env.NODE_ENV === "production", // only HTTPS in production
+			sameSite: "strict",            // CSRF protection
+			maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+		})
+
 
 		res.send({
 			success: true,
