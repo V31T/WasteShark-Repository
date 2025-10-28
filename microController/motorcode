@@ -1,0 +1,28 @@
+gcs:send_text(0, "Starting motor test")
+
+
+local LEFT_MOTOR = 1
+local RIGHT_MOTOR = 3
+
+
+function set_motors(pwm)
+    SRV_Channels:set_output_pwm(LEFT_MOTOR, pwm)
+    SRV_Channels:set_output_pwm(RIGHT_MOTOR, pwm)
+end
+
+-- Full speed
+set_motors(2000)
+gcs:send_text(0, "Full speed")
+sleep(5000)
+
+-- Half speed 
+set_motors(1750)
+gcs:send_text(0, "Half speed")
+sleep(5000)
+
+-- Stop 
+set_motors(1500)
+gcs:send_text(0, "Motors stopped")
+sleep(2000)
+
+gcs:send_text(0, "Motor test complete")
