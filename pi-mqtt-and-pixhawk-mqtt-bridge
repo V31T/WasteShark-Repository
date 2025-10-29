@@ -1,0 +1,42 @@
+//pi
+import paho.mqtt.client as mqtt
+
+# MQTT Broker details
+broker_address = "YOUR_BACKEND_IP_OR_HOSTNAME"
+port = 1883            # Default MQTT port
+topic = "petspace/data"  # Example topic
+
+# Create client object
+client = mqtt.Client()
+
+# Connect to broker
+client.connect(broker_address, port)
+
+# Example data to send
+payload = "{'temperature': 23.5, 'humidity': 50}"  # Replace with actual sensor data
+
+# Publish the data
+client.publish(topic, payload)
+
+client.disconnect()
+
+//backend
+import paho.mqtt.client as mqtt
+
+broker_address = "0.0.0.0"  # Listen on all interfaces or specify public IP
+port = 1883
+topic = "petspace/data"
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+    client.subscribe(topic)
+
+def on_message(client, userdata, msg):
+    print(f"Received message: {msg.payload.decode()} on topic {msg.topic}")
+
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+
+client.connect(broker_address, port, 60)
+client.loop_forever()
