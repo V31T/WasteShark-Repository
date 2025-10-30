@@ -27,13 +27,19 @@ const Navbar = () => {
               <>
                 <Link
                   to="/"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-royal transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
                 >
                   Home
                 </Link>
                 <Link
+                  to="/about"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
+                >
+                  About
+                </Link>
+                <Link
                   to="/login"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-royal transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
                 >
                   Login
                 </Link>
@@ -42,13 +48,13 @@ const Navbar = () => {
               <>
                 <Link
                   to="/dashboard"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-royal transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
                 >
                   Dashboard
                 </Link>
                 <Link
                   to="/admin"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-royal transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
                 >
                   Admin
                 </Link>
