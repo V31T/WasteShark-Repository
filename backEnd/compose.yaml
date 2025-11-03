@@ -29,10 +29,12 @@ services:
                 exec mosquitto -c /mosquitto/config/mosquitto.conf
             "
 
-    ngnix:
-        image: nginx
-        restart: always
+    nginx:
+        image: nginx:stable
+        container_name: wasteshark-nginx
         volumes:
             - ./nginx.conf:/etc/nginx/nginx.conf:ro
         ports:
             - "80:80"
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
