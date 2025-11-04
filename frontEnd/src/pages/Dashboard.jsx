@@ -18,7 +18,8 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { subscribeToRobotUpdates, startCleaning, stopCleaning, createRobot, deleteRobot, emergencyStopAll } from '../api/robots'
+import { getRobots, subscribeToRobotUpdates, startCleaning, stopCleaning, createRobot, deleteRobot, emergencyStopAll } from '../api/robots'
+import { mockRobots } from '../api/mocks'
 import RobotListSidebar from '../components/RobotListSidebar'
 import toast from 'react-hot-toast'
 import {
@@ -33,19 +34,80 @@ import {
 } from '../components/robot_telemetry'
 
 const Dashboard = () => {
-  const { token } = useAuth()
+  const { token, userId } = useAuth()
   
   // State Management: Robot data and status
-  const [robots, setRobots] = useState([
-    { id: '1', name: 'WasteShark-001', status: 'IDLE', battery: 85, progress: 45, runtime: '34m', location: 'Pool A' },
-    { id: '2', name: 'WasteShark-002', status: 'CLEANING', battery: 72, progress: 65, runtime: '1h 25m', location: 'Pool B' },
-    { id: '3', name: 'WasteShark-003', status: 'MAINTENANCE', battery: 15, progress: 0, runtime: '0m', location: 'Pool C' }
-  ])
-  const [selectedRobotId, setSelectedRobotId] = useState('1')
+  const [robots, setRobots] = useState([])
+  const [selectedRobotId, setSelectedRobotId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [systemNormal, setSystemNormal] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
 
   const selectedRobot = robots.find(r => r.id === selectedRobotId) || robots[0]
+
+  /**
+   * Status Mapping Helper
+   * Maps backend status values to frontend display values
+   * Backend: "roaming", "stopping", "off"
+   * Frontend: "CLEANING", "IDLE", "OFF"
+   */
+  const mapStatus = (backendStatus) => {
+    const statusMap = {
+      'roaming': 'CLEANING',
+      'stopping': 'IDLE',
+      'off': 'OFF',
+      'offline': 'OFFLINE'
+    }
+    return statusMap[backendStatus?.toLowerCase()] || 'IDLE'
+  }
+
+  /**
+   * Fetch Robots on Mount
+   * Loads robots from backend when component mounts or when auth changes
+   * Falls back to mock robots if user has no robots (for testing purposes)
+   */
+  useEffect(() => {
+    const fetchRobots = async () => {
+      if (!token || !userId) {
+        setRobots([])
+        setInitialLoad(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const fetchedRobots = await getRobots(userId, token)
+        
+        // If user has no robots, use mock robots for testing
+        if (fetchedRobots.length === 0) {
+          setRobots(mockRobots)
+          if (mockRobots.length > 0) {
+            setSelectedRobotId(mockRobots[0].id)
+          }
+        } else {
+          setRobots(fetchedRobots)
+          if (fetchedRobots.length > 0 && !selectedRobotId) {
+            setSelectedRobotId(fetchedRobots[0].id)
+          }
+        }
+      } catch (error) {
+        // On error, use mock robots for testing
+        if (import.meta.env.DEV) {
+          console.error('Error fetching robots:', error)
+          console.log('Using mock robots for testing')
+        }
+        setRobots(mockRobots)
+        if (mockRobots.length > 0) {
+          setSelectedRobotId(mockRobots[0].id)
+        }
+      } finally {
+        setLoading(false)
+        setInitialLoad(false)
+      }
+    }
+
+    fetchRobots()
+  }, [token, userId])
 
   /**
    * EventSource Pattern: Real-time updates from server
@@ -82,17 +144,17 @@ const Dashboard = () => {
    * Implements Command pattern - encapsulates cleaning action
    */
   const handleStartCleaning = async () => {
-    if (!selectedRobot) return
+    if (!selectedRobot || !userId) return
     setLoading(true)
     try {
-      await startCleaning(selectedRobot.id, token)
+      await startCleaning(selectedRobot.id, userId, token)
       toast.success(`${selectedRobot.name} cleaning started!`)
-      // Update local state optimistically
+      // Update local state optimistically (backend sets status to "roaming")
       setRobots(robots.map(r => 
         r.id === selectedRobot.id ? { ...r, status: 'CLEANING' } : r
       ))
     } catch (error) {
-      toast.error('Failed to start cleaning')
+      toast.error(error.message || 'Failed to start cleaning')
     } finally {
       setLoading(false)
     }
@@ -103,17 +165,17 @@ const Dashboard = () => {
    * Implements Command pattern - encapsulates stop action
    */
   const handleStopCleaning = async () => {
-    if (!selectedRobot) return
+    if (!selectedRobot || !userId) return
     setLoading(true)
     try {
-      await stopCleaning(selectedRobot.id, token)
+      await stopCleaning(selectedRobot.id, userId, token)
       toast.success(`${selectedRobot.name} cleaning stopped!`)
-      // Update local state optimistically
+      // Update local state optimistically (backend sets status to "stopping")
       setRobots(robots.map(r => 
         r.id === selectedRobot.id ? { ...r, status: 'IDLE' } : r
       ))
     } catch (error) {
-      toast.error('Failed to stop cleaning')
+      toast.error(error.message || 'Failed to stop cleaning')
     } finally {
       setLoading(false)
     }
@@ -121,21 +183,19 @@ const Dashboard = () => {
 
   /**
    * Add Robot Handler
+   * NOTE: Backend requires an existing robotId. The form should collect robotId.
    */
-  const handleAddRobot = async (robotData) => {
+  const handleAddRobot = async (robotId) => {
+    if (!userId) return
     setLoading(true)
     try {
-      const newRobot = await createRobot(robotData, token)
-      setRobots([...robots, { 
-        ...newRobot, 
-        status: 'IDLE', 
-        battery: 100, 
-        progress: 0, 
-        runtime: '0m' 
-      }])
+      await createRobot(robotId, userId, token)
+      // Refresh robots list after adding
+      const fetchedRobots = await getRobots(userId, token)
+      setRobots(fetchedRobots)
       toast.success('Robot added successfully!')
     } catch (error) {
-      toast.error('Failed to add robot')
+      toast.error(error.message || 'Failed to add robot')
     } finally {
       setLoading(false)
     }
@@ -145,19 +205,21 @@ const Dashboard = () => {
    * Delete Robot Handler
    */
   const handleDeleteRobot = async (robotId) => {
-    if (!window.confirm('Are you sure you want to delete this robot?')) {
+    if (!userId) return
+    if (!window.confirm('Are you sure you want to remove this robot from your account?')) {
       return
     }
     setLoading(true)
     try {
-      await deleteRobot(robotId, token)
+      await deleteRobot(robotId, userId, token)
       setRobots(robots.filter(r => r.id !== robotId))
-      if (selectedRobotId === robotId && robots.length > 1) {
-        setSelectedRobotId(robots[0].id)
+      if (selectedRobotId === robotId) {
+        const remainingRobots = robots.filter(r => r.id !== robotId)
+        setSelectedRobotId(remainingRobots.length > 0 ? remainingRobots[0].id : null)
       }
-      toast.success('Robot deleted successfully!')
+      toast.success('Robot removed successfully!')
     } catch (error) {
-      toast.error('Failed to delete robot')
+      toast.error(error.message || 'Failed to remove robot')
     } finally {
       setLoading(false)
     }
@@ -167,17 +229,19 @@ const Dashboard = () => {
    * Emergency Stop Handler
    */
   const handleEmergencyStop = async () => {
+    if (!userId || robots.length === 0) return
     if (!window.confirm('Are you sure you want to execute EMERGENCY STOP on all robots?')) {
       return
     }
     setLoading(true)
     try {
-      await emergencyStopAll(token)
+      const robotIds = robots.map(r => r.id)
+      await emergencyStopAll(robotIds, userId, token)
       toast.success('Emergency stop executed - All robots stopped!')
       // Update all robots to IDLE
       setRobots(robots.map(r => ({ ...r, status: 'IDLE' })))
     } catch (error) {
-      toast.error('Failed to execute emergency stop')
+      toast.error(error.message || 'Failed to execute emergency stop')
     } finally {
       setLoading(false)
     }
@@ -185,11 +249,16 @@ const Dashboard = () => {
 
   // Helper Function: Determines status color coding
   const getStatusColor = (status) => {
-    switch (status) {
+    const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : 'IDLE'
+    switch (normalizedStatus) {
       case 'CLEANING':
+      case 'ROAMING':
         return 'bg-green-500'
       case 'IDLE':
+      case 'STOPPING':
         return 'bg-gray-500'
+      case 'OFF':
+        return 'bg-gray-700' // Darker gray to distinguish from idle
       case 'MAINTENANCE':
         return 'bg-orange-500'
       case 'OFFLINE':
@@ -228,7 +297,20 @@ const Dashboard = () => {
 
         {/* Robot Details Section */}
         <div className="p-8">
-          {selectedRobot ? (
+          {initialLoad ? (
+            <div className="glass-effect rounded-xl p-8 text-center border border-white/10">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-royal mx-auto mb-4"></div>
+              <p className="text-gray-400 text-lg">Loading robots...</p>
+            </div>
+          ) : robots.length === 0 ? (
+            <div className="glass-effect rounded-xl p-8 text-center border border-white/10">
+              <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+              <p className="text-gray-400 text-lg mb-2">No robots found</p>
+              <p className="text-gray-500 text-sm">Add a robot using the sidebar to get started</p>
+            </div>
+          ) : selectedRobot ? (
             <>
               {/* Robot Info Card */}
               <div className="glass-effect rounded-xl p-8 mb-6 border border-white/10 hover:border-royal/30 transition-all">
@@ -238,7 +320,7 @@ const Dashboard = () => {
                   <div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">STATUS:</p>
                     <div className={`inline-block px-4 py-2 rounded-lg text-white font-semibold uppercase shadow-lg ${getStatusColor(selectedRobot.status)}`}>
-                      {selectedRobot.status}
+                      {mapStatus(selectedRobot.status)}
                     </div>
                   </div>
                   
@@ -257,7 +339,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={handleStartCleaning}
-                    disabled={loading || selectedRobot.status === 'CLEANING' || selectedRobot.status === 'OFFLINE'}
+                    disabled={loading || mapStatus(selectedRobot.status) === 'CLEANING' || mapStatus(selectedRobot.status) === 'OFFLINE' || mapStatus(selectedRobot.status) === 'OFF'}
                     className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-lg font-semibold transition-all transform hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +351,7 @@ const Dashboard = () => {
                   
                   <button
                     onClick={handleStopCleaning}
-                    disabled={loading || selectedRobot.status !== 'CLEANING'}
+                    disabled={loading || mapStatus(selectedRobot.status) !== 'CLEANING'}
                     className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-4 rounded-lg font-semibold transition-all transform hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

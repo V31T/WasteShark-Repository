@@ -1,6 +1,14 @@
 /**
  * Robot Management API - Backend Integration Layer
  * 
+ * INTEGRATION STATUS:
+ * - Fetch Robots: ✅ Integrated with POST /api/robots/fetch
+ * - Add Robot: ✅ Integrated with POST /api/robots/new
+ * - Start Robot: ✅ Integrated with POST /api/robots/start
+ * - Stop Robot: ✅ Integrated with POST /api/robots/stop
+ * - Delete Robot: ✅ Integrated with POST /api/robots/delete
+ * - Rename Robot: ✅ Integrated with POST /api/robots/rename
+ * 
  * UML ANALYSIS:
  * This module implements the Repository pattern for robot data management.
  * Acts as a Facade for robot-related operations.
@@ -9,35 +17,78 @@
  * 1. Repository Pattern: Centralized robot data access
  * 2. Facade Pattern: Simplifies robot operations
  * 3. CRUD Operations: Create, Read, Update, Delete
- * 4. EventSource Pattern: Server-Sent Events for real-time updates
  * 
- * ENDPOINTS:
- * - GET /robots - List all robots
- * - GET /robots/stream - Real-time status updates (SSE)
- * - POST /robots/:id/start - Start cleaning
- * - POST /robots/:id/stop - Stop cleaning
- * - POST /robots - Create robot
- * - DELETE /robots/:id - Delete robot
+ * BACKEND ENDPOINTS:
+ * - POST /api/robots/fetch - Get all robots owned by user (requires JWT)
+ * - POST /api/robots/new - Assign existing robot to user (requires JWT)
+ * - POST /api/robots/start - Start robot cleaning (requires JWT + ownership)
+ * - POST /api/robots/stop - Stop robot cleaning (requires JWT + ownership)
+ * - POST /api/robots/delete - Remove robot from user account (requires JWT + ownership)
+ * - POST /api/robots/rename - Rename robot (requires JWT + ownership)
+ * 
+ * NOTE: All endpoints require JWT access token in Authorization header.
+ * Robot ownership is verified by the backend middleware.
+ * Backend uses status values: "roaming", "stopping", "off"
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 /**
- * Get All Robots - GET /robots
- * Retrieves list of all robots
+ * Get All Robots - POST /api/robots/fetch
+ * Retrieves list of all robots owned by the authenticated user
+ * 
+ * Backend Request:
+ * {
+ *   "userId": "user-uuid-here"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true,
+ *   "robots": [
+ *     {
+ *       "robot_id": "robot-uuid",
+ *       "name": "WasteShark-001",
+ *       "location": "Pool A"
+ *     }
+ *   ]
+ * }
+ * 
+ * NOTE: Backend returns robot_id (not id) and does not include status/battery.
+ * These are mapped/defaulted in the response transformation.
+ * 
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<Array>} Array of robot objects with id, robot_id, name, location, status, battery
  */
-export const getRobots = async () => {
+export const getRobots = async (userId, token) => {
   try {
-    // TODO: integrate with GET /robots
-    // const response = await fetch(`${API_BASE_URL}/robots`)
-    // if (!response.ok) throw new Error('Failed to fetch robots')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({ userId })
+    })
     
-    // Mock implementation
-    return [
-      { id: '1', name: 'WasteShark-001', status: 'Idle', battery: 85 },
-      { id: '2', name: 'WasteShark-002', status: 'Cleaning', battery: 72 },
-    ]
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to fetch robots')
+    }
+    
+    const data = await response.json()
+    // Transform backend response to match frontend expectations
+    // Map robot_id to id for consistency, add default status/battery
+    return data.robots.map(robot => ({
+      id: robot.robot_id,
+      robot_id: robot.robot_id,
+      name: robot.name,
+      location: robot.location || 'Unknown',
+      status: 'off', // Default status, will be updated via other means
+      battery: 0 // Default battery, not provided by backend
+    }))
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch robots')
   }
@@ -93,10 +144,19 @@ export const subscribeToRobotUpdates = (onUpdate, onError) => {
   // return eventSource
   
   // Mock implementation - simulate real-time updates
+  // NOTE: This is currently disabled to prevent overriding real robot data
+  // The mock EventSource is returned but doesn't send updates
+  // When real SSE is implemented, this will be replaced
+  
   const mockEventSource = {
-    close: () => clearInterval(mockInterval)
+    close: () => {
+      // No-op since we're not using intervals
+    }
   }
   
+  // Disabled: Mock updates were overriding real robot data
+  // Uncomment when real SSE endpoint is available:
+  /*
   const mockInterval = setInterval(() => {
     const mockData = {
       robots: [
@@ -107,130 +167,288 @@ export const subscribeToRobotUpdates = (onUpdate, onError) => {
     }
     onUpdate(mockData)
   }, 3000) // Update every 3 seconds
+  */
   
   return mockEventSource
 }
 
 /**
- * Start Cleaning - POST /robots/:robotId/start
+ * Start Cleaning - POST /api/robots/start
  * Command to start robot cleaning operation
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * Backend also:
+ * - Updates robot status to "roaming" in database
+ * - Publishes MQTT command: /robot/{robotId}/command with status: "roaming"
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const startCleaning = async (robotId, token) => {
+export const startCleaning = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with POST /robots/:robotId/start
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}/start`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to start cleaning')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { success: true, message: 'Cleaning started' }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to start cleaning')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
     throw new Error(error.message || 'Failed to start cleaning')
   }
 }
 
 /**
- * Stop Cleaning - POST /robots/:robotId/stop
+ * Stop Cleaning - POST /api/robots/stop
  * Command to stop robot cleaning operation
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * Backend also:
+ * - Updates robot status to "stopping" in database
+ * - Publishes MQTT command: /robot/{robotId}/command with status: "stopping"
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const stopCleaning = async (robotId, token) => {
+export const stopCleaning = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with POST /robots/:robotId/stop
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}/stop`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to stop cleaning')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/stop`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { success: true, message: 'Cleaning stopped' }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to stop cleaning')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
     throw new Error(error.message || 'Failed to stop cleaning')
   }
 }
 
 /**
- * Create Robot - POST /robots
- * Creates a new robot in the system
+ * Add Robot to User Account - POST /api/robots/new
+ * Assigns an existing robot to the user account
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "existing-robot-id",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * IMPORTANT: This endpoint does NOT create a new robot.
+ * It assigns an existing robot (by robot_id) to the user.
+ * The robot must already exist in the database.
+ * 
+ * @param {string} robotId - Existing robot_id from database
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const createRobot = async (robotData, token) => {
+export const createRobot = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with POST /robots
-    // const response = await fetch(`${API_BASE_URL}/robots`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(robotData)
-    // })
-    // if (!response.ok) throw new Error('Failed to create robot')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/new`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { 
-      id: Date.now().toString(), 
-      ...robotData,
-      status: 'Idle',
-      battery: 100
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to add robot')
     }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
-    throw new Error(error.message || 'Failed to create robot')
+    throw new Error(error.message || 'Failed to add robot')
   }
 }
 
 /**
- * Delete Robot - DELETE /robots/:robotId
- * Removes a robot from the system
+ * Remove Robot from User Account - POST /api/robots/delete
+ * Removes the association between a robot and user account
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * NOTE: This does NOT delete the robot from the database, only removes
+ * the ownership association. The robot can be assigned to another user later.
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const deleteRobot = async (robotId, token) => {
+export const deleteRobot = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with DELETE /robots/:robotId
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}`, {
-    //   method: 'DELETE',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to delete robot')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { success: true, message: 'Robot deleted' }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to remove robot')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
-    throw new Error(error.message || 'Failed to delete robot')
+    throw new Error(error.message || 'Failed to remove robot')
   }
 }
 
 /**
- * Emergency Kill Switch - POST /robots/emergency-stop
- * Stops all robots immediately
+ * Rename Robot - POST /api/robots/rename
+ * Updates robot name and optionally location
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid",
+ *   "name": "New Robot Name",
+ *   "location": "New Location" (optional)
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} name - New robot name (required)
+ * @param {string} location - New location (optional)
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const emergencyStopAll = async (token) => {
+export const renameRobot = async (robotId, userId, name, location, token) => {
   try {
-    // TODO: integrate with POST /robots/emergency-stop
-    // const response = await fetch(`${API_BASE_URL}/robots/emergency-stop`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to execute emergency stop')
-    // return await response.json()
+    const body = {
+      robotId: robotId,
+      userId: userId,
+      name: name
+    }
+    if (location) {
+      body.location = location
+    }
     
-    // Mock implementation
+    const response = await fetch(`${API_BASE_URL}/api/robots/rename`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to rename robot')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
+  } catch (error) {
+    throw new Error(error.message || 'Failed to rename robot')
+  }
+}
+
+/**
+ * Emergency Kill Switch - Stops all robots immediately
+ * 
+ * NOTE: Backend does not have a dedicated emergency stop endpoint.
+ * This function implements emergency stop by calling stopCleaning
+ * for each robot individually.
+ * 
+ * @param {Array<string>} robotIds - Array of robot UUIDs
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const emergencyStopAll = async (robotIds, userId, token) => {
+  try {
+    // Stop each robot individually since backend doesn't have bulk stop endpoint
+    const promises = robotIds.map(robotId => stopCleaning(robotId, userId, token))
+    await Promise.all(promises)
     return { success: true, message: 'All robots stopped' }
   } catch (error) {
     throw new Error(error.message || 'Failed to execute emergency stop')
