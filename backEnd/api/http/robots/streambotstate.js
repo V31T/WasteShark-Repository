@@ -1,7 +1,8 @@
 // api/robots/streamBotState.js
+const verifyJWT = require(process.cwd() + "/middleware/verifyJWT")
 
 function setupEndPoint(app) {
-    app.get("/api/robots/streambotstate", async function(req, res) {
+    app.get("/api/robots/streambotstate", verifyJWT, async function(req, res) {
         // Proper Server-Sent Event headers
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");

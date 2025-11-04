@@ -1,7 +1,14 @@
 /**
  * Button Component - Reusable UI Element
  * 
- * Mainly Used for triggering actions such as form submissions or navigation.
+ * UML ANALYSIS:
+ * This component implements the Strategy pattern with variant-based styling.
+ * Acts as a reusable presentation component.
+ * 
+ * ARCHITECTURAL PATTERNS:
+ * 1. Strategy Pattern: Different button variants (primary, secondary, danger, success)
+ * 2. Presentation Component: Pure UI element with minimal logic
+ * 3. Polymorphism: Single component handles multiple button types
  * 
  * VARIANTS:
  * - primary: Main action (royal blue)

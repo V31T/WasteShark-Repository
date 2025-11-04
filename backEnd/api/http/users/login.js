@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken");
 const User = require(process.cwd() + "/schemas/User.js")
 
-async function setupEndPoint(app) {
+async function setupEndPoint(app, mqttClient) {
 	app.post("/api/users/login", async function(req, res) {
 		let user
 
@@ -29,28 +29,40 @@ async function setupEndPoint(app) {
 			})
 		}
 
-		const token = jwt.sign(
+		const accessToken = jwt.sign(
 			{
-				id: user._id,
+				user_id: user.user_id,
 				email: user.email,
+				first_name: user.first_name,
+				last_name: user.last_name
 			},
-			process.env.JWT_SECRET,
+			process.env.ACCESS_TOKEN_SECRET,
 			{
-				expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+				expiresIn: "15m",
 			}
 		);
 
+		const refreshToken = jwt.sign(
+			{
+				user_id: user.user_id
+			},
+			process.env.REFRESH_TOKEN_SECRET,
+			{
+				expiresIn: "7d",
+			}
+		);
 
-		res.cookie("authToken", token, {
+		res.cookie("jwt", refreshToken, {
 			httpOnly: true,                // prevents JS access (XSS protection)
-			secure: process.env.NODE_ENV === "production", // only HTTPS in production
-			sameSite: "strict",            // CSRF protection
+			secure: process.env.NODE_ENV === 'production', // only HTTPS in production
+			sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // None in prod (cross-site), Lax for dev
 			maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
 		})
 
 		res.send({
 			success: true,
-			token: token,
+			token: accessToken,
+			user_id: user.user_id
 		})
 	})
 }

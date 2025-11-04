@@ -1,19 +1,51 @@
 services:
+
     mongo:
         image: mongo
         restart: always
         environment:
-            MONGO_INITDB_ROOT_USERNAME: root
-            MONGO_INITDB_ROOT_PASSWORD: root
+            MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
         volumes:
-            - ~/mongo-data:/data/db
-        ports:
-            - "27017:27017"
+            - ./mongo-data:/data/db
+        expose:
+            - "27017"
+        networks:
+            - robot-network
 
     mosquitto-broker:
         image: eclipse-mosquitto
         restart: always
-        ports:
-            - "1883:1883"
+        expose:
+            - "1883"
+        networks:
+            - robot-network
         volumes:
             - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+        environment:
+            - MQTT_USERNAME=${MQTT_USERNAME}
+            - MQTT_PASSWORD=${MQTT_PASSWORD}
+        command: >
+            /bin/sh -c "
+                mkdir -p /mosquitto/data &&
+                mosquitto_passwd -b -c /mosquitto/data/passwd \"$$MQTT_USERNAME\" \"$$MQTT_PASSWORD\" &&
+                chmod 600 /mosquitto/data/passwd &&
+                exec mosquitto -c /mosquitto/config/mosquitto.conf
+            "
+
+    ngnix:
+        image: nginx
+        restart: always
+        expose:
+            - "80"
+        networks:
+            - robot-network
+
+networks:
+    robot-network:  
+        driver: bridge
+
+volumes:
+    mongo-data:
+    mosquitto-data:
+    mosquitto-log:
