@@ -35,6 +35,10 @@ import platform
 import sys
 from pathlib import Path
 
+# Force headless operation - MUST be before importing cv2 or torch
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ['OPENCV_VIDEOIO_PRIORITY_MSMF'] = '0'
+
 import torch
 
 FILE = Path(__file__).resolve()
@@ -170,7 +174,8 @@ def run(
     # Dataloader
     bs = 1  # batch_size
     if webcam:
-        view_img = check_imshow(warn=True)
+        # Disable view_img for webcam in headless mode to avoid Qt errors
+        view_img = False
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
         bs = len(dataset)
     elif screenshot:
@@ -282,12 +287,17 @@ def run(
             # Stream results
             im0 = annotator.result()
             if view_img:
-                if platform.system() == "Linux" and p not in windows:
-                    windows.append(p)
-                    cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-                    cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+                # Only attempt to show if display is available
+                try:
+                    if platform.system() == "Linux" and p not in windows:
+                        windows.append(p)
+                        cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+                        cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
+                    cv2.imshow(str(p), im0)
+                    cv2.waitKey(1)  # 1 millisecond
+                except Exception as e:
+                    LOGGER.warning(f"Unable to display image: {e}. Continuing without display...")
+                    view_img = False  # Disable for future iterations
 
             # Save results (image with detections)
             if save_img:
@@ -436,5 +446,3 @@ def main(opt):
 if __name__ == "__main__":
     opt = parse_opt()
     main(opt)
-
-
