@@ -1,8 +1,7 @@
 // api/robots/streamTelemetry.js
 const mqtt = require("mqtt");
 
-// Optional: reuse an existing MQTT client if your project already initializes one in server.js
-const client = mqtt.connect("mqtt://127.0.0.1:1883");
+const { client } = require(process.cwd() + "/server.js");
 
 function setupEndPoint(app) {
   app.get("/api/robots/streamtelemetry", async function (req, res) {

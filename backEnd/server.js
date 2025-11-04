@@ -7,6 +7,8 @@ const port = 3000
 
 require("dotenv").config();
 
+let client = mqtt.connect("mqtt://127.0.0.1:1883")
+
 function loadApiRoutes() {
 	app.use(express.json())
 	app.use(cookieParser())
@@ -50,8 +52,6 @@ async function setup() {
 	await setupMongoose()
 	loadApiRoutes()
 
-	const client = mqtt.connect("mqtt://127.0.0.1:1883");
-
 	client.on("connect", function () {
 		console.log("MQTT connected")
 	})
@@ -65,4 +65,4 @@ async function setup() {
 
 setup()
 
-
+module.exports = { client }
