@@ -1,0 +1,22 @@
+services:
+    project-backend:
+        expose:
+            - "3000"
+        environment:
+            - MONGODB_USERNAME=${MONGODB_USERNAME}
+            - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+            - MQTT_USERNAME=${MQTT_USERNAME}
+            - MQTT_PASSWORD=${MQTT_PASSWORD}
+            - HTTP_PORT=${HTTP_PORT}
+            - MQTT_PORT=${MQTT_PORT}
+            - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+            - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+        depends_on:
+            - mongo
+            - mosquitto-broker
+            - nginx
+        networks:
+            - robot-network
+    nginx:
+        volumes:
+            - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro

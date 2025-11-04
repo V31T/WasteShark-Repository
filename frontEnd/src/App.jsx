@@ -23,8 +23,8 @@ import PrivateRoute from './components/PrivateRoute'
 import Home from './pages/Home'
 import About from './pages/About'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
-import Admin from './pages/Admin'
 import Navbar from './components/Navbar'
 
 function App() {
@@ -43,6 +43,7 @@ function App() {
             <Route path="/" element={<><Navbar /><Home /></>} />
             <Route path="/about" element={<><Navbar /><About /></>} />
             <Route path="/login" element={<><Navbar /><Login /></>} />
+            <Route path="/signup" element={<><Navbar /><Signup /></>} />
             
             {/* Protected Routes: Wrapped in PrivateRoute to enforce authentication */}
             <Route
@@ -51,15 +52,6 @@ function App() {
                 <PrivateRoute>
                   <Navbar />
                   <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <PrivateRoute>
-                  <Navbar />
-                  <Admin />
                 </PrivateRoute>
               }
             />

@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
@@ -61,81 +61,81 @@ const Login = () => {
           <div className="absolute bottom-20 -right-40 w-80 h-80 bg-royal/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* Two-Column Layout: Form (left) and Marketing Info (right) */}
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 h-full relative z-10">
-          {/* Left Column - Login Form in Dark Card */}
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-md glass-effect rounded-2xl p-10 shadow-2xl border border-white/10 hover:border-royal/30 transition-all">
-              <div className="text-center mb-8">
-                <img src={logo} alt="WasteShark Logo" className="h-12 mx-auto mb-4" />
-                <h2 className="text-4xl font-bold text-gradient mb-2">Welcome Back</h2>
-                <p className="text-gray-300">Sign in to your account to continue</p>
+      {/* Two-Column Layout: Form (left) and Marketing Info (right) */}
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 h-full relative z-10">
+        {/* Left Column - Login Form in Dark Card */}
+        <div className="flex items-center justify-center">
+          <div className="w-full max-w-md glass-effect rounded-2xl p-10 shadow-2xl border border-white/10 hover:border-royal/30 transition-all">
+            <div className="text-center mb-8">
+              <img src={logo} alt="WasteShark Logo" className="h-12 mx-auto mb-4" />
+              <h2 className="text-4xl font-bold text-gradient mb-2">Welcome Back</h2>
+              <p className="text-gray-300">Sign in to your account to continue</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-navy-lighter border border-white/10 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-royal focus:border-royal transition-all"
+                  placeholder="Enter your email"
+                />
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-navy-lighter border border-white/10 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-royal focus:border-royal transition-all"
-                    placeholder="Enter your email"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-navy-lighter border border-white/10 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-royal focus:border-royal transition-all"
-                    placeholder="Enter your password"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 text-royal border-white/10 rounded focus:ring-royal bg-navy-lighter" />
-                    <span className="ml-2 text-sm text-gray-300">Remember me</span>
-                  </label>
-                  <a href="#" className="text-sm text-royal-light hover:text-royal transition-colors">
-                    Forgot password?
-                  </a>
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-royal to-royal-dark hover:from-royal-dark hover:to-royal text-white py-3 rounded-lg font-semibold transition-all transform hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </button>
-              </form>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-navy-lighter border border-white/10 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-royal focus:border-royal transition-all"
+                  placeholder="Enter your password"
+                />
+              </div>
               
-              {/* <div className="mt-8">
-                <p className="text-white font-semibold mb-2">Demo Credentials:</p>
-                <p className="text-royal text-sm">Email: admin@wasteshark.com</p>
-                <p className="text-royal text-sm">Password: demo123</p>
-              </div> */}
-              
-              <p className="mt-6 text-center text-sm text-gray-400">
-                Don't have an account?{' '}
-                <a href="#" className="text-royal-light font-semibold hover:text-royal transition-colors">
-                  Sign up here
+              <div className="flex items-center justify-between">
+                <label className="flex items-center cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 text-royal border-white/10 rounded focus:ring-royal bg-navy-lighter" />
+                  <span className="ml-2 text-sm text-gray-300">Remember me</span>
+                </label>
+                <a href="#" className="text-sm text-royal-light hover:text-royal transition-colors">
+                  Forgot password?
                 </a>
-              </p>
-            </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-royal to-royal-dark hover:from-royal-dark hover:to-royal text-white py-3 rounded-lg font-semibold transition-all transform hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+            
+            {/* <div className="mt-8">
+              <p className="text-white font-semibold mb-2">Demo Credentials:</p>
+              <p className="text-royal text-sm">Email: admin@wasteshark.com</p>
+              <p className="text-royal text-sm">Password: demo123</p>
+            </div> */}
+            
+            <p className="mt-6 text-center text-sm text-gray-400">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-royal-light font-semibold hover:text-royal transition-colors">
+                Sign up here
+              </Link>
+            </p>
           </div>
+        </div>
 
           {/* Right Column - Marketing Card */}
           <div className="flex items-center justify-center">

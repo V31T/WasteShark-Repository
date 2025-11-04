@@ -129,6 +129,89 @@ const Home = () => {
           </div>
         </section>
 
+     {/* About Our Team Section */}
+     <section className="bg-gradient-to-b from-navy via-indigo-950/30 to-navy text-white py-24 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden opacity-40">
+          <div className="absolute top-40 right-1/4 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-40 left-1/4 w-72 h-72 bg-teal-500/20 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+              About Our Team
+            </h2>
+            <p className="text-xl max-w-4xl mx-auto text-gray-200 leading-relaxed">
+              Meet the talented individuals behind WasteShark's innovative pool cleaning technology. Our diverse team of experts brings together cutting-edge engineering and design to create the most advanced autonomous pool cleaning robot on the market.
+            </p>
+          </div>
+
+          {/* Team Cards with scroll animation */}
+          <div className="flex flex-col gap-8">
+            <div 
+              ref={(el) => (teamCardsRef.current[0] = el)}
+              className="opacity-0 transition-all duration-700"
+              style={{ transitionDelay: '0ms' }}
+            >
+              <TeamCard
+                color="bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600"
+                icon="⚡"
+                teamName="Electrical Team"
+                title="Electrical Engineering Team"
+                description="Our electrical engineers design and develop the advanced control systems, sensors, and power management that make WasteShark's autonomous navigation possible. They ensure reliable operation and efficient power consumption."
+                skills={[
+                  'Autonomous Navigation Systems',
+                  'Sensor Integration',
+                  'Control Algorithms',
+                  'Power Management'
+                ]}
+              />
+            </div>
+
+            <div 
+              ref={(el) => (teamCardsRef.current[1] = el)}
+              className="opacity-0 transition-all duration-700"
+              style={{ transitionDelay: '100ms' }}
+            >
+              <TeamCard
+                color="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
+                icon="🔧"
+                teamName="Mechanical Team"
+                title="Mechanical Engineering Team"
+                description="Our mechanical engineers create the robust, water-resistant chassis and propulsion systems that allow WasteShark to navigate and clean pools effectively. They focus on durability and performance in aquatic environments."
+                skills={[
+                  'Underwater Propulsion',
+                  'Debris Collection Systems',
+                  'Durable Materials',
+                  'Waterproof Design'
+                ]}
+              />
+            </div>
+
+            <div 
+              ref={(el) => (teamCardsRef.current[2] = el)}
+              className="opacity-0 transition-all duration-700"
+              style={{ transitionDelay: '200ms' }}
+            >
+              <TeamCard
+                color="bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600"
+                icon="💻"
+                teamName="Software Team"
+                title="Software Development Team"
+                description="Our software engineers develop the intelligent algorithms and user interface that make WasteShark easy to use. They create the one-button operation system and ensure seamless user experience."
+                skills={[
+                  'AI Navigation',
+                  'User Interface Design',
+                  'Machine Learning',
+                  'Mobile App Development'
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
 
         {/* Lower Content Section - Stats/Features */}
         <section className="bg-gradient-to-br from-navy via-blue-950/30 to-navy text-white py-24 relative overflow-hidden">

@@ -5,11 +5,13 @@
  * and emergency stop functionality
  */
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, onDeleteRobot, onEmergencyStop }) => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newRobot, setNewRobot] = useState({ name: '', location: '' })
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, robotId: null })
+  const contextMenuRef = useRef(null)
 
   // Helper Function: Status badge styling
   const getStatusBadge = (status) => {
@@ -29,6 +31,31 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
     setShowAddForm(false)
   }
 
+  // Context menu handlers
+  const handleContextMenu = (e, robotId) => {
+    e.preventDefault()
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, robotId })
+  }
+
+  const handleDeleteFromMenu = (robotId) => {
+    onDeleteRobot(robotId)
+    setContextMenu({ visible: false, x: 0, y: 0, robotId: null })
+  }
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
+        setContextMenu({ visible: false, x: 0, y: 0, robotId: null })
+      }
+    }
+
+    if (contextMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [contextMenu.visible])
+
   return (
     <div className="w-64 bg-navy-light min-h-screen flex flex-col border-r border-white/10 backdrop-blur-sm">
       {/* Header */}
@@ -39,7 +66,7 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
           </svg>
           <div>
             <h1 className="text-lg font-bold text-gradient">WasteShark</h1>
-            <p className="text-xs text-gray-400">Admin</p>
+            <p className="text-xs text-gray-400">Dashboard</p>
           </div>
         </div>
       </div>
@@ -106,6 +133,7 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
               <div
                 key={robot.id}
                 onClick={() => onSelectRobot(robot.id)}
+                onContextMenu={(e) => handleContextMenu(e, robot.id)}
                 className={`relative p-3 rounded-lg border transition-all cursor-pointer ${
                   selectedRobotId === robot.id
                     ? 'bg-royal/20 border-royal shadow-glow'
@@ -114,18 +142,6 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
               >
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-sm font-bold text-white">{robot.name}</h3>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteRobot(robot.id)
-                    }}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                    title="Delete robot"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
                 </div>
                 <p className="text-xs text-gray-400 mb-2">{robot.location}</p>
                 <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold text-white uppercase shadow-md ${getStatusBadge(robot.status)}`}>
@@ -152,6 +168,28 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
           Emergency Kill Switch
         </button>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <div
+          ref={contextMenuRef}
+          className="fixed bg-navy-light border border-white/20 rounded-lg shadow-xl z-50 min-w-[150px]"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`
+          }}
+        >
+          <button
+            onClick={() => handleDeleteFromMenu(contextMenu.robotId)}
+            className="w-full flex items-center gap-2 px-4 py-2 text-left text-white hover:bg-red-500/20 hover:text-red-500 transition-colors rounded-t-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete Robot
+          </button>
+        </div>
+      )}
     </div>
   )
 }

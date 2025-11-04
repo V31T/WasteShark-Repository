@@ -1,0 +1,17 @@
+services:
+
+    mongo:
+        ports:
+            - "27017:27017"
+
+    mosquitto-broker:
+        ports:
+            - "1883:1883"
+
+    ngnix:
+        ports:
+            - "80:80"
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        volumes:
+            - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro

@@ -52,12 +52,6 @@ const Navbar = () => {
                 >
                   Dashboard
                 </Link>
-                <Link
-                  to="/admin"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"
-                >
-                  Admin
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="px-3 py-2 rounded-md text-sm font-medium bg-royal hover:bg-blue-600 transition-colors"
