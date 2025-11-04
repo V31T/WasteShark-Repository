@@ -238,8 +238,6 @@ if (process.env.NODE_ENV !== "test") {
   setup()
 }
 
-module.exports = { app, loadApiRoutes }
-
 module.exports = {
 	addMQTTListener: addMQTTListener,
 	removeMQTTListener: removeMQTTListener,
