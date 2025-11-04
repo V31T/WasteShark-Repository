@@ -8,13 +8,16 @@ const bcrypt = require("bcrypt")
 const app = express()
 const cors = require("cors")
 
-const mqttEndpoints = {}
+const mqttListeners = {}
+const serverSentEvents = {}
+
+let mqttClient
 
 require("dotenv").config();
 
 let client = mqtt.connect("mqtt://127.0.0.1:1883")
 
-function loadApiRoutes(mqttClient) {
+function loadApiRoutes() {
 	// CORS Configuration
 	// Allows requests from frontend origin and handles credentials (cookies)
 	// 
@@ -56,11 +59,49 @@ function loadApiRoutes(mqttClient) {
 		res.send("Hello World!")
 	})
 
-	app.listen(process.env.HTTP_PORT, () => {
-		console.log(`Example app listening on port ${process.env.HTTP_PORT}`)
-	})
+	if(process.env.NODE_ENV !== 'test') {
+		app.listen(process.env.HTTP_PORT, () => {
+			console.log(`Example app listening on port ${process.env.HTTP_PORT}`)
+		})
+	}
 
 	loadRoutesRecursively("./api/http", app, mqttClient)
+}
+
+function addServerSentEvent(res, identifier) {
+	res.setHeader("Content-Type", "text/event-stream");
+	res.setHeader("Cache-Control", "no-cache");
+	res.setHeader("Connection", "keep-alive");
+	res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+	res.flushHeaders(); // Send headers immediately
+
+	if (!serverSentEvents[identifier]) {
+		serverSentEvents[identifier] = {}
+	}
+
+	serverSentEvents[identifier][res] = res
+
+	res.on("close", () => {
+		removeServerSentEvent(res, identifier);
+	});
+}
+
+function removeServerSentEvent(res, identifier) {
+	if (serverSentEvents[identifier]) {
+		if (!res.closed) {
+			res.end();
+		}
+
+		delete serverSentEvents[identifier][res];
+	}
+}
+
+function getServerSentEvents(identifier) {
+	if (serverSentEvents[identifier]) {
+		return Object.values(serverSentEvents[identifier]);
+	}
+
+	return [];
 }
 
 // Runs every endpoint module to set them up
@@ -81,8 +122,24 @@ function loadRoutesRecursively(path, ...parameters) {
 	}		
 }
 
+function addMQTTListener(topic, listener) {
+	if (!mqttListeners[topic]) {
+		mqttListeners[topic] = {}
+
+		mqttClient.subscribe(topic)
+	}
+
+	mqttListeners[topic][listener] = listener
+}
+
+function removeMQTTListener(topic, listener) {
+	if (mqttListeners[topic]) {
+		delete mqttListeners[topic][listener]
+	}
+}
+
 // Puts all MQTT endpoint modules into a dictionary to be called later
-function setupMQTTEndpoints(path, client) {
+function setupMQTTEndpoints(path) {
 	const items = fs.readdirSync(path)
 
 	for (const item of items) {
@@ -94,9 +151,7 @@ function setupMQTTEndpoints(path, client) {
 		} else if (file.isFile()) {
 			const endPointModule = require(itemPath)
 
-			mqttEndpoints[endPointModule.path] = endPointModule.run
-
-			client.subscribe(endPointModule.path)
+			addMQTTListener(endPointModule.path, endPointModule.run)
 		}
 	}
 }
@@ -115,7 +170,8 @@ async function loadDefaultDatabase() {
 		return
 	}
 
-	const user_id = uuid.v4()
+	// const user_id = uuid.v4()
+	const user_id = "this_is_a_user_id"
 	const robot_id = "this_is_a_robot_id"
 
 	await User.create({
@@ -140,6 +196,8 @@ async function setupMQTT() {
 		password: process.env.MQTT_PASSWORD
 	})
 
+	mqttClient = client
+
 	//No need to verify authentication because it is needed to connect to the broker from both ends
 	await new Promise((resolve, reject) => {
 		client.on("connect", function () {
@@ -156,10 +214,12 @@ async function setupMQTT() {
 
 	client.on("message", (topic, payload) => {
 		// Call the appropriate endpoint function based on the topic
-		if (topic in mqttEndpoints) {
+		if (topic in mqttListeners) {
 			const data = JSON.parse(payload.toString())
 
-			mqttEndpoints[topic](client, data)
+			for (const key in mqttListeners[topic]) {
+				mqttListeners[topic][key](client, data)
+			}
 		}
 	});
 
@@ -171,10 +231,19 @@ async function setupMQTT() {
 async function setup() {
 	await setupMongoose()
 	await loadDefaultDatabase()
-	const mqttClient = await setupMQTT()
-	loadApiRoutes(mqttClient)
+	await setupMQTT()
+	loadApiRoutes()
 }
 
-setup()
+// Only start the server if NOT in test mode
+if (process.env.NODE_ENV !== "test") {
+  setup()
+}
 
-module.exports = { client }
+module.exports = {
+	addMQTTListener: addMQTTListener,
+	removeMQTTListener: removeMQTTListener,
+	addServerSentEvent: addServerSentEvent,
+	removeServerSentEvent: removeServerSentEvent,
+	getServerSentEvents: getServerSentEvents
+}
