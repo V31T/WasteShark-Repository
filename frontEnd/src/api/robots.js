@@ -456,53 +456,37 @@ export const emergencyStopAll = async (robotIds, userId, token) => {
 }
 
 /**
- * Create Test Robot - Creates a robot for the user after login
+ * Add Robot to User Account - POST /api/robots/new
+ * Assigns an existing robot (by UUID) to the authenticated user's account
  * 
- * BACKEND CHANGE REQUIRED:
- * The current backend does NOT have an endpoint to CREATE new robots.
- * It only has POST /api/robots/new which ASSIGNS existing robots to users.
- * 
- * To support creating test robots on login, the backend needs a new endpoint:
- * 
- * POST /api/robots/create
- * Headers: Authorization: Bearer <token>
- * Body: {
- *   "name": "user@example.com",
- *   "location": "Test Location",
- *   "status": "off"
+ * Backend Request:
+ * {
+ *   "robotId": "existing-robot-uuid",
+ *   "userId": "user-uuid"
  * }
  * 
- * This endpoint should:
- * 1. Verify JWT token to get user_id
- * 2. Generate a unique robot_id (using uuid)
- * 3. Create robot in database with:
- *    - robot_id: generated UUID
- *    - owned_by_user_id: user_id from JWT
- *    - name: provided name (user's email)
- *    - location: provided location (optional)
- *    - status: "off" (default)
- * 4. Return: { success: true, robot_id: "...", name: "...", ... }
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
  * 
- * CURRENT IMPLEMENTATION:
- * This function attempts to use the existing /api/robots/new endpoint, but
- * it will fail because that endpoint requires an existing robot_id.
- * This is a placeholder that documents the required backend change.
+ * Backend Behavior:
+ * - Finds robot by robot_id (UUID)
+ * - Returns 404 if robot not found
+ * - Returns 403 if robot is already owned by another user
+ * - Assigns robot to user if not owned
  * 
- * @param {string} name - Robot name (user's email)
- * @param {string} userId - User ID from JWT token
+ * NOTE: This endpoint does NOT create new robots. It only assigns existing
+ * robots that are not yet owned by any user. The robot must already exist
+ * in the database with a valid robot_id (UUID).
+ * 
+ * @param {string} robotId - Existing robot UUID that user wants to add
+ * @param {string} userId - User UUID from JWT token
  * @param {string} token - JWT access token
- * @param {string} location - Optional location (default: "Test Location")
- * @returns {Promise<{success: boolean, robot_id?: string, name?: string}>}
+ * @returns {Promise<{success: boolean}>}
  */
-export const createTestRobot = async (name, userId, token, location = "Test Location") => {
+export const newRobot = async (robotId, userId, token) => {
   try {
-    // BACKEND CHANGE NEEDED: Replace this with a proper create endpoint
-    // The current /api/robots/new endpoint requires an existing robot_id,
-    // so this will not work without backend changes.
-    
-    // Option 1: Use existing endpoint (will fail - requires existing robot_id)
-    // This is commented out because it won't work:
-    /*
     const response = await fetch(`${API_BASE_URL}/api/robots/new`, {
       method: 'POST',
       headers: {
@@ -511,58 +495,27 @@ export const createTestRobot = async (name, userId, token, location = "Test Loca
       },
       credentials: 'include',
       body: JSON.stringify({
-        robotId: "some-existing-robot-id", // This doesn't exist!
+        robotId: robotId,
         userId: userId
-      })
-    })
-    */
-    
-    // Option 2: Call new endpoint (once backend implements it)
-    // Uncomment when backend adds POST /api/robots/create:
-    /*
-    const response = await fetch(`${API_BASE_URL}/api/robots/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        name: name,
-        location: location,
-        status: "off"
       })
     })
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to create robot')
+      
+      // Handle specific error cases
+      if (response.status === 404) {
+        throw new Error('Robot not found. Please check the UUID and try again.')
+      } else if (response.status === 403) {
+        throw new Error('Robot is already owned by another user.')
+      } else {
+        throw new Error(errorData.error || 'Failed to add robot to your account')
+      }
     }
     
     const data = await response.json()
-    return {
-      success: data.success,
-      robot_id: data.robot_id,
-      name: data.name,
-      location: data.location,
-      status: data.status || "off"
-    }
-    */
-    
-    // TEMPORARY: Return mock success until backend implements endpoint
-    // This allows the frontend to work without breaking, but the robot
-    // won't actually be created in the database
-    if (import.meta.env.DEV) {
-      console.warn('Robot creation not implemented - backend endpoint needed. See function documentation.')
-    }
-    return {
-      success: true,
-      robot_id: `mock-robot-${Date.now()}`,
-      name: name,
-      location: location,
-      status: "off"
-    }
+    return { success: data.success }
   } catch (error) {
-    throw new Error(error.message || 'Failed to create test robot')
+    throw new Error(error.message || 'Failed to add robot to your account')
   }
 }

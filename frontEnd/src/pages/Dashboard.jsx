@@ -18,7 +18,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getRobots, subscribeToRobotUpdates, startCleaning, stopCleaning, createRobot, deleteRobot, emergencyStopAll } from '../api/robots'
+import { getRobots, subscribeToRobotUpdates, startCleaning, stopCleaning, newRobot, deleteRobot, emergencyStopAll } from '../api/robots'
 import { mockRobots } from '../api/mocks'
 import RobotListSidebar from '../components/RobotListSidebar'
 import toast from 'react-hot-toast'
@@ -183,13 +183,14 @@ const Dashboard = () => {
 
   /**
    * Add Robot Handler
-   * NOTE: Backend requires an existing robotId. The form should collect robotId.
+   * Adds an existing robot to the user's account by UUID
+   * Uses the newRobot function which calls POST /api/robots/new
    */
   const handleAddRobot = async (robotId) => {
     if (!userId) return
     setLoading(true)
     try {
-      await createRobot(robotId, userId, token)
+      await newRobot(robotId, userId, token)
       // Refresh robots list after adding
       const fetchedRobots = await getRobots(userId, token)
       setRobots(fetchedRobots)
