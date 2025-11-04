@@ -39,7 +39,7 @@ async function setupEndPoint(app, mqttClient) {
 			},
 			{
 				$set: {
-					owned_by_user_id: req.body.userId
+					owned_by_user_id: req.user.user_id
 				}
 			})
 		} catch (error) {

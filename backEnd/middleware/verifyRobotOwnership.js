@@ -22,8 +22,8 @@ async function run(req, res, next) {
 		
 		return
 	}
-
-	if (robotData.owned_by_user_id !== req.body.userId) {
+	
+	if (robotData.owned_by_user_id !== req.user.user_id) {
 		res.status(403).send({
 			error: "Invalid credentials"
 		})
