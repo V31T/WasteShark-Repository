@@ -100,7 +100,9 @@ export const AuthProvider = ({ children }) => {
         } catch (robotError) {
           // Robot creation failed, but login was successful
           // Log error but don't block login flow
-          console.error('Failed to create test robot:', robotError)
+          if (import.meta.env.DEV) {
+            console.error('Failed to create test robot:', robotError)
+          }
           // No toast error - this is expected if backend doesn't have the endpoint yet
         }
         

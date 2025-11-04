@@ -49,7 +49,9 @@ const Signup = () => {
       }
     } catch (error) {
       // Error handling is done in AuthContext, but catch here for safety
-      console.error('Signup error:', error)
+      if (import.meta.env.DEV) {
+        console.error('Signup error:', error)
+      }
     } finally {
       setLoading(false)
     }

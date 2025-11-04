@@ -63,7 +63,9 @@ const Dashboard = () => {
         }
       },
       (error) => {
-        console.error('EventSource error:', error)
+        if (import.meta.env.DEV) {
+          console.error('EventSource error:', error)
+        }
         toast.error('Connection to robot stream lost')
       }
     )

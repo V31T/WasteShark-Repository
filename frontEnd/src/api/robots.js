@@ -20,7 +20,7 @@
  * - DELETE /robots/:id - Delete robot
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 /**
  * Get All Robots - GET /robots
@@ -334,7 +334,9 @@ export const createTestRobot = async (name, userId, token, location = "Test Loca
     // TEMPORARY: Return mock success until backend implements endpoint
     // This allows the frontend to work without breaking, but the robot
     // won't actually be created in the database
-    console.warn('Robot creation not implemented - backend endpoint needed. See function documentation.')
+    if (import.meta.env.DEV) {
+      console.warn('Robot creation not implemented - backend endpoint needed. See function documentation.')
+    }
     return {
       success: true,
       robot_id: `mock-robot-${Date.now()}`,
