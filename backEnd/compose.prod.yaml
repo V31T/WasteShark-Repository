@@ -1,5 +1,8 @@
 services:
     project-backend:
+        image: firsttobebear/waste-shark-backend:latest
+        pull_policy: always
+        restart: always
         expose:
             - "3000"
         environment:
@@ -11,10 +14,10 @@ services:
             - MQTT_PORT=${MQTT_PORT}
             - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
             - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+            - USE_PRODUCTION_IPS=true
         depends_on:
             - mongo
             - mosquitto-broker
-            - nginx
         networks:
             - robot-network
     nginx:

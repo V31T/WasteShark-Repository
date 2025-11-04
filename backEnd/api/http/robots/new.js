@@ -25,6 +25,7 @@ async function setupEndPoint(app, mqttClient) {
 			return
 		}
 
+		//Remove for demo
 		if (robotData.owned_by_user_id) {
 			res.status(403).send({
 				error: "Robot already owned"
