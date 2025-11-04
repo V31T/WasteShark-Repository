@@ -54,9 +54,11 @@ function loadApiRoutes(mqttClient) {
 		res.send("Hello World!")
 	})
 
-	app.listen(process.env.HTTP_PORT, () => {
-		console.log(`Example app listening on port ${process.env.HTTP_PORT}`)
-	})
+	if(process.env.NODE_ENV !== 'test') {
+		app.listen(process.env.HTTP_PORT, () => {
+			console.log(`Example app listening on port ${process.env.HTTP_PORT}`)
+		})
+	}
 
 	loadRoutesRecursively("./api/http", app, mqttClient)
 }
@@ -173,6 +175,11 @@ async function setup() {
 	loadApiRoutes(mqttClient)
 }
 
-setup()
+// Only start the server if NOT in test mode
+if (process.env.NODE_ENV !== "test") {
+  setup()
+}
+
+module.exports = { app, loadApiRoutes }
 
 
