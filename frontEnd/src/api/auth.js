@@ -74,6 +74,7 @@ export const loginUser = async (email, password) => {
     }
     
     const data = await response.json()
+    console.log('[Auth] Login successful - Access token received')
     return {
       success: data.success,
       token: data.token,
@@ -81,6 +82,7 @@ export const loginUser = async (email, password) => {
       email: email // Include email for use in frontend
     }
   } catch (error) {
+    console.error('[Auth] Login failed:', error.message)
     throw new Error(error.message || 'Login failed')
   }
 }
@@ -146,6 +148,52 @@ export const createUser = async (userData) => {
 }
 
 /**
+ * Refresh Access Token - POST /api/users/refresh
+ * Uses refresh token cookie to get a new access token
+ * 
+ * Backend Response:
+ * {
+ *   "success": true,
+ *   "token": "NEW_JWT_ACCESS_TOKEN",
+ *   "message": "Access token refreshed successfully"
+ * }
+ * 
+ * @returns {Promise<{success: boolean, token: string}>}
+ */
+export const refreshAccessToken = async () => {
+  try {
+    console.log('[Auth] Attempting to refresh access token...')
+    const response = await fetch(`${API_BASE_URL}/api/users/refresh`, {
+      method: 'POST',
+      credentials: 'include', // Important: Include refresh token cookie
+      headers: { 'Content-Type': 'application/json' }
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      
+      // Check if refresh token has expired
+      if (response.status === 401) {
+        console.error('[Auth] Refresh token expired or invalid:', errorData.message || 'Unauthorized')
+        throw new Error('Refresh token expired. Please log in again.')
+      }
+      
+      throw new Error(errorData.error || errorData.message || 'Failed to refresh token')
+    }
+    
+    const data = await response.json()
+    console.log('[Auth] Access token refreshed successfully')
+    return {
+      success: data.success,
+      token: data.token
+    }
+  } catch (error) {
+    console.error('[Auth] Token refresh failed:', error.message)
+    throw error
+  }
+}
+
+/**
  * User Logout - POST /api/users/logout
  * Implements logout flow with refresh token cookie clearing
  * 
@@ -172,10 +220,12 @@ export const logoutUser = async () => {
       throw new Error(errorData.error || 'Logout failed')
     }
     
+    console.log('[Auth] Logout successful')
     return { success: true }
   } catch (error) {
     // Even if backend logout fails, we should clear local storage
     // This is handled in AuthContext
+    console.error('[Auth] Logout error:', error.message)
     throw new Error(error.message || 'Logout failed')
   }
 }

@@ -34,6 +34,31 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 /**
+ * Helper function to check and log token expiration errors
+ * @param {Response} response - Fetch response object
+ * @param {Object} errorData - Parsed error data from response
+ * @param {string} apiName - Name of the API endpoint for logging
+ */
+function handleTokenExpiration(response, errorData, apiName) {
+  if (response.status === 401) {
+    const errorMessage = errorData.error || errorData.message || 'Unauthorized'
+    
+    if (errorMessage.includes('TokenExpired') || errorMessage.includes('expired')) {
+      console.error(`[${apiName}] Access token expired:`, errorMessage)
+      console.log(`[${apiName}] Access token has expired. Refresh token may be used to get a new token.`)
+    } else if (errorMessage.includes('InvalidToken') || errorMessage.includes('Invalid')) {
+      console.error(`[${apiName}] Invalid access token:`, errorMessage)
+      console.log(`[${apiName}] Access token is invalid. User may need to log in again.`)
+    } else if (errorMessage.includes('No token provided')) {
+      console.error(`[${apiName}] No access token provided`)
+      console.log(`[${apiName}] Missing authentication token.`)
+    } else {
+      console.error(`[${apiName}] Authentication failed (401):`, errorMessage)
+    }
+  }
+}
+
+/**
  * Get All Robots - POST /api/robots/fetch
  * Retrieves list of all robots owned by the authenticated user
  * 
@@ -75,7 +100,8 @@ export const getRobots = async (userId, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to fetch robots')
+      handleTokenExpiration(response, errorData, 'Robots API [getRobots]')
+      throw new Error(errorData.error || errorData.message || 'Failed to fetch robots')
     }
     
     const data = await response.json()
@@ -213,7 +239,8 @@ export const startCleaning = async (robotId, userId, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to start cleaning')
+      handleTokenExpiration(response, errorData, 'Robots API [startCleaning]')
+      throw new Error(errorData.error || errorData.message || 'Failed to start cleaning')
     }
     
     const data = await response.json()
@@ -264,7 +291,8 @@ export const stopCleaning = async (robotId, userId, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to stop cleaning')
+      handleTokenExpiration(response, errorData, 'Robots API [stopCleaning]')
+      throw new Error(errorData.error || errorData.message || 'Failed to stop cleaning')
     }
     
     const data = await response.json()
@@ -315,7 +343,8 @@ export const createRobot = async (robotId, userId, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to add robot')
+      handleTokenExpiration(response, errorData, 'Robots API [createRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to add robot')
     }
     
     const data = await response.json()
@@ -365,7 +394,8 @@ export const deleteRobot = async (robotId, userId, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to remove robot')
+      handleTokenExpiration(response, errorData, 'Robots API [deleteRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to remove robot')
     }
     
     const data = await response.json()
@@ -422,7 +452,8 @@ export const renameRobot = async (robotId, userId, name, location, token) => {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to rename robot')
+      handleTokenExpiration(response, errorData, 'Robots API [renameRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to rename robot')
     }
     
     const data = await response.json()
@@ -503,13 +534,16 @@ export const newRobot = async (robotId, userId, token) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       
+      // Check for token expiration first
+      handleTokenExpiration(response, errorData, 'Robots API [newRobot]')
+      
       // Handle specific error cases
       if (response.status === 404) {
         throw new Error('Robot not found. Please check the UUID and try again.')
       } else if (response.status === 403) {
         throw new Error('Robot is already owned by another user.')
       } else {
-        throw new Error(errorData.error || 'Failed to add robot to your account')
+        throw new Error(errorData.error || errorData.message || 'Failed to add robot to your account')
       }
     }
     

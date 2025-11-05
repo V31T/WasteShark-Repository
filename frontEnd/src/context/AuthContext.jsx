@@ -58,11 +58,14 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user')
     
     if (storedToken && storedUserId) {
+      console.log('[AuthContext] Restoring session from localStorage')
       setToken(storedToken)
       setUserId(storedUserId)
       if (storedUser) {
         setUser(JSON.parse(storedUser))
       }
+    } else {
+      console.log('[AuthContext] No stored session found')
     }
     setLoading(false)
   }, [])
@@ -81,6 +84,8 @@ export const AuthProvider = ({ children }) => {
           user_id: result.user_id
         }
         
+        console.log('[AuthContext] Login successful - storing access token in localStorage')
+        console.log('[AuthContext] Refresh token stored in HTTP-only cookie (7 day expiry)')
         setToken(result.token)
         setUserId(result.user_id)
         setUser(userData)
@@ -124,6 +129,7 @@ export const AuthProvider = ({ children }) => {
 
   // Logout Handler: Clears authentication state
   const logout = () => {
+    console.log('[AuthContext] Logging out - clearing tokens and user data')
     setToken(null)
     setUser(null)
     setUserId(null)
