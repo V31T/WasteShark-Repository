@@ -21,6 +21,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
 import Home from './pages/Home'
+import About from './pages/About'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
@@ -40,6 +41,7 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<><Navbar /><Home /></>} />
+            <Route path="/about" element={<><Navbar /><About /></>} />
             <Route path="/login" element={<><Navbar /><Login /></>} />
             <Route path="/signup" element={<><Navbar /><Signup /></>} />
             

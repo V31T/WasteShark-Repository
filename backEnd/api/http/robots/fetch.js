@@ -8,7 +8,7 @@ async function setupEndPoint(app, mqttClient) {
 
 		try {
 			robots = await Robot.find({
-				owned_by_user_id: req.body.userId
+				owned_by_user_id: req.user.user_id
 			}).select('robot_id name location -_id') // Makes it return only these fields without the _id field
 		} catch (error) {
 			console.error("Error fetching robots from database:", error)
