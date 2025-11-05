@@ -14,12 +14,51 @@
  * 10. Better visual polish with refined shadows and borders
  */
 
-import { motion } from "framer-motion"
-import { teamColors, teamMembers } from "../data/team"
-import Carousel from "../components/Carousel"
-import PageTransition from "../components/PageTransition"
+import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { teamColors, teamMembers } from '../data/team'
+import Carousel from '../components/Carousel'
+import PageTransition from '../components/PageTransition'
+import TeamCard from '../components/TeamCard'
 
 const About = () => {
+  const teamCardsRef = useRef([])
+
+  /**
+   * Intersection Observer for scroll animations
+   * Triggers fade-in-up animation when cards enter viewport
+   */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in-up')
+            entry.target.style.opacity = '1'
+          }
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    )
+
+    teamCardsRef.current.forEach((card) => {
+      if (card) {
+        observer.observe(card)
+      }
+    })
+
+    return () => {
+      teamCardsRef.current.forEach((card) => {
+        if (card) {
+          observer.unobserve(card)
+        }
+      })
+    }
+  }, [])
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-navy">
@@ -346,6 +385,80 @@ const About = () => {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </section>
+        
+        {/* Team Card Section */}
+        <section className="bg-gradient-to-b from-navy via-indigo-950/30 to-navy text-white py-24 relative overflow-hidden">
+          {/* Background decorative elements */}
+          <div className="absolute inset-0 overflow-hidden opacity-40">
+            <div className="absolute top-40 right-1/4 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-40 left-1/4 w-72 h-72 bg-teal-500/20 rounded-full blur-3xl"></div>
+          </div>
+
+          {/* Team Cards with scroll animation */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="flex flex-col gap-8">
+              <div 
+                ref={(el) => (teamCardsRef.current[0] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '0ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600"
+                  icon="⚡"
+                  teamName="Electrical Team"
+                  title="Electrical Engineering Team"
+                  description="Our electrical engineers design and develop the advanced control systems, sensors, and power management that make WasteShark's autonomous navigation possible. They ensure reliable operation and efficient power consumption."
+                  skills={[
+                    'Autonomous Navigation Systems',
+                    'Sensor Integration',
+                    'Control Algorithms',
+                    'Power Management'
+                  ]}
+                />
+              </div>
+
+              <div 
+                ref={(el) => (teamCardsRef.current[1] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '100ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
+                  icon="🔧"
+                  teamName="Mechanical Team"
+                  title="Mechanical Engineering Team"
+                  description="Our mechanical engineers create the robust, water-resistant chassis and propulsion systems that allow WasteShark to navigate and clean pools effectively. They focus on durability and performance in aquatic environments."
+                  skills={[
+                    'Underwater Propulsion',
+                    'Debris Collection Systems',
+                    'Durable Materials',
+                    'Waterproof Design'
+                  ]}
+                />
+              </div>
+
+              <div 
+                ref={(el) => (teamCardsRef.current[2] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '200ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600"
+                  icon="💻"
+                  teamName="Software Team"
+                  title="Software Development Team"
+                  description="Our software engineers develop the intelligent algorithms and user interface that make WasteShark easy to use. They create the one-button operation system and ensure seamless user experience."
+                  skills={[
+                    'AI Navigation',
+                    'User Interface Design',
+                    'Machine Learning',
+                    'Mobile App Development'
+                  ]}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
