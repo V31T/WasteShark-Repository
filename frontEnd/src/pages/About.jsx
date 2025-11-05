@@ -80,7 +80,7 @@ const About = () => {
                 About Us
               </motion.h1>
               <motion.p
-                className="text-xl md:text-2xl lg:text-3xl mb-12 max-w-5xl mx-auto text-gray-200 leading-relaxed"
+                className="text-xl md:text-2xl mb-12 max-w-5xl mx-auto text-gray-200 leading-relaxed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
