@@ -155,7 +155,9 @@ function setupMQTTEndpoints(path) {
 }
 
 async function setupMongoose() {
-	await mongoose.connect(`mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@localhost:27017/Project?authSource=admin`)
+	const ip = process.env.USE_PRODUCTION_IPS ? "mongo" : "localhost"
+
+	await mongoose.connect(`mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${ip}:27017/Project?authSource=admin`)
 
 	console.log("Mongoose connected")
 }
@@ -189,9 +191,22 @@ async function loadDefaultDatabase() {
 }
 
 async function setupMQTT() {
-	const client = mqtt.connect(`mqtt://127.0.0.1:${process.env.MQTT_PORT}`, {
+	const ip = process.env.USE_PRODUCTION_IPS ? "mosquitto-broker" : "localhost"
+	const port = process.env.USE_PRODUCTION_IPS ? process.env.MQTTS_PORT : process.env.MQTT_PORT
+	const mqttString = process.env.USE_PRODUCTION_IPS ? "mqtts" : "mqtt"
+
+	const connectionOptions = {}
+
+	if (process.env.USE_PRODUCTION_IPS) {
+		// In production, use TLS
+		connectionOptions.ca = fs.readFileSync('/ssl/origin.pem')
+		connectionOptions.rejectUnauthorized = false
+	}
+
+	const client = mqtt.connect(`${mqttString}://${ip}:${port}`, {
 		username: process.env.MQTT_USERNAME,
-		password: process.env.MQTT_PASSWORD
+		password: process.env.MQTT_PASSWORD,
+		...connectionOptions
 	})
 
 	mqttClient = client
