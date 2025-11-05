@@ -19,6 +19,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
+import PageTransition from '../components/PageTransition'
 import toast from 'react-hot-toast'
 import logo from '../assets/logo_transparent.svg'
 
@@ -52,12 +53,13 @@ const Login = () => {
   }
 
   return (
-    <div className="h-screen bg-navy p-8 overflow-hidden relative">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 -left-40 w-80 h-80 bg-royal/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 -right-40 w-80 h-80 bg-royal/10 rounded-full blur-3xl"></div>
-      </div>
+    <PageTransition>
+      <div className="h-screen bg-navy p-8 overflow-hidden relative">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 -left-40 w-80 h-80 bg-royal/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 -right-40 w-80 h-80 bg-royal/10 rounded-full blur-3xl"></div>
+        </div>
 
       {/* Two-Column Layout: Form (left) and Marketing Info (right) */}
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 h-full relative z-10">
@@ -135,44 +137,45 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Right Column - Marketing Card */}
-        <div className="flex items-center justify-center">
-          <div className="w-full max-w-md bg-gradient-to-br from-royal to-royal-dark rounded-2xl p-12 text-white shadow-2xl border border-royal-light/20">
-            <h3 className="text-4xl font-bold mb-6">
-              Join the Pool Cleaning Revolution
-            </h3>
-            <p className="text-lg text-gray-100 mb-8 leading-relaxed">
-              Access comprehensive robot tools to optimize your operations and make a positive environmental impact.
-            </p>
-            
-            {/* Info Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Admin Dashboard Card */}
-              <div className="bg-white rounded-xl p-4 hover:scale-105 transition-transform duration-300">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h4 className="font-bold text-navy mb-1">Admin Dashboard</h4>
-                <p className="text-sm text-gray-600">Monitor and control your robots</p>
-              </div>
+          {/* Right Column - Marketing Card */}
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-md bg-gradient-to-br from-royal to-royal-dark rounded-2xl p-12 text-white shadow-2xl border border-royal-light/20">
+              <h3 className="text-4xl font-bold mb-6">
+                Join the Pool Cleaning Revolution
+              </h3>
+              <p className="text-lg text-gray-100 mb-8 leading-relaxed">
+                Access comprehensive robot tools to optimize your operations and make a positive environmental impact.
+              </p>
               
-              {/* Secure & Private Card */}
-              <div className="bg-white rounded-xl p-4 hover:scale-105 transition-transform duration-300">
-                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center mb-3 shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+              {/* Info Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Admin Dashboard Card */}
+                <div className="bg-white rounded-xl p-4 hover:scale-105 transition-transform duration-300">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-bold text-navy mb-1">Admin Dashboard</h4>
+                  <p className="text-sm text-gray-600">Monitor and control your robots</p>
                 </div>
-                <h4 className="font-bold text-navy mb-1">Secure & Private</h4>
-                <p className="text-sm text-gray-600">Your data is protected</p>
+                
+                {/* Secure & Private Card */}
+                <div className="bg-white rounded-xl p-4 hover:scale-105 transition-transform duration-300">
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center mb-3 shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h4 className="font-bold text-navy mb-1">Secure & Private</h4>
+                  <p className="text-sm text-gray-600">Your data is protected</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   )
 }
 

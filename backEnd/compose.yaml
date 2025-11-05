@@ -8,20 +8,16 @@ services:
             MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
         volumes:
             - ./mongo-data:/data/db
-        expose:
-            - "27017"
+        ports:
+            - "27017:27017"
         networks:
             - robot-network
 
     mosquitto-broker:
-        image: eclipse-mosquitto
+        image: eclipse-mosquitto:2.0-openssl
         restart: always
-        expose:
-            - "1883"
         networks:
             - robot-network
-        volumes:
-            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
         environment:
             - MQTT_USERNAME=${MQTT_USERNAME}
             - MQTT_PASSWORD=${MQTT_PASSWORD}
@@ -33,11 +29,11 @@ services:
                 exec mosquitto -c /mosquitto/config/mosquitto.conf
             "
 
-    ngnix:
+    nginx:
         image: nginx
         restart: always
-        expose:
-            - "80"
+        ports:
+            - "80:80"
         networks:
             - robot-network
 

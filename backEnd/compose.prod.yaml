@@ -1,5 +1,8 @@
 services:
     project-backend:
+        image: firsttobebear/waste-shark-backend:latest
+        pull_policy: always
+        restart: always
         expose:
             - "3000"
         environment:
@@ -8,15 +11,49 @@ services:
             - MQTT_USERNAME=${MQTT_USERNAME}
             - MQTT_PASSWORD=${MQTT_PASSWORD}
             - HTTP_PORT=${HTTP_PORT}
+              # Since it's tls, mosquitto defaults to 8883 accordign to mosquito-tls man files
             - MQTT_PORT=${MQTT_PORT}
+            - MQTTS_PORT=${MQTTS_PORT}
             - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
             - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+            - USE_PRODUCTION_IPS=true
+            - FRONTEND_ORIGIN=${FRONTEND_ORIGIN}
+        volumes:
+            - ./ssl:/ssl:ro
         depends_on:
             - mongo
             - mosquitto-broker
-            - nginx
         networks:
             - robot-network
-    nginx:
+    mosquitto-broker:
+        image: eclipse-mosquitto:openssl
+        volumes:
+            - ./mosquitto.prod.conf:/mosquitto/config/mosquitto.conf:ro
+            - ./ssl:/ssl:ro
+              #- ./ssl/origin.key:/mosquitto/config/ssl/origin.key:z
+              #- ./ssl/origin.pem:/mosquitto/config/ssl/origin.pem:z
+        ports:
+            - "8883:8883"
+        command: >
+            /bin/sh -c "
+                mkdir -p /mosquitto/config/ssl &&
+                cp /ssl/origin.key /mosquitto/config/ssl/origin.key &&
+                cp /ssl/origin.pem /mosquitto/config/ssl/origin.pem &&
+                chmod 744 /mosquitto/config/ssl/origin.key &&
+                chmod 744 /mosquitto/config/ssl/origin.pem &&
+
+                mkdir -p /mosquitto/data &&
+                mosquitto_passwd -b -c /mosquitto/data/passwd \"$$MQTT_USERNAME\" \"$$MQTT_PASSWORD\" &&
+                chmod 600 /mosquitto/data/passwd &&
+                exec mosquitto -c /mosquitto/config/mosquitto.conf
+
+                echo \"loaded\"
+            "
+    nginx: # I would do native nginx, to avoid the weridness with docker ngl
+        ports:
+          -  "443:443" # expose https pot
+        depends_on:
+            - project-backend
         volumes:
             - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+            - ./ssl:/etc/ssl:ro
