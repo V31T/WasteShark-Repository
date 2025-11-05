@@ -20,6 +20,15 @@ services:
             - mosquitto-broker
         networks:
             - robot-network
+    mosquitto-broker:
+        volumes:
+            - ./mosquitto.prod.conf:/mosquitto/config/mosquitto.conf:ro
+            - ./ssl:/mosquitto/config/ssl:ro
+        ports:
+            - "8883:8883"
     nginx:
+        depends_on:
+            - project-backend
         volumes:
             - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+            - ./ssl:/etc/ssl:ro
