@@ -1,6 +1,14 @@
 /**
  * Robot Management API - Backend Integration Layer
  * 
+ * INTEGRATION STATUS:
+ * - Fetch Robots: ✅ Integrated with POST /api/robots/fetch
+ * - Add Robot: ✅ Integrated with POST /api/robots/new
+ * - Start Robot: ✅ Integrated with POST /api/robots/start
+ * - Stop Robot: ✅ Integrated with POST /api/robots/stop
+ * - Delete Robot: ✅ Integrated with POST /api/robots/delete
+ * - Rename Robot: ✅ Integrated with POST /api/robots/rename
+ * 
  * UML ANALYSIS:
  * This module implements the Repository pattern for robot data management.
  * Acts as a Facade for robot-related operations.
@@ -9,35 +17,104 @@
  * 1. Repository Pattern: Centralized robot data access
  * 2. Facade Pattern: Simplifies robot operations
  * 3. CRUD Operations: Create, Read, Update, Delete
- * 4. EventSource Pattern: Server-Sent Events for real-time updates
  * 
- * ENDPOINTS:
- * - GET /robots - List all robots
- * - GET /robots/stream - Real-time status updates (SSE)
- * - POST /robots/:id/start - Start cleaning
- * - POST /robots/:id/stop - Stop cleaning
- * - POST /robots - Create robot
- * - DELETE /robots/:id - Delete robot
+ * BACKEND ENDPOINTS:
+ * - POST /api/robots/fetch - Get all robots owned by user (requires JWT)
+ * - POST /api/robots/new - Assign existing robot to user (requires JWT)
+ * - POST /api/robots/start - Start robot cleaning (requires JWT + ownership)
+ * - POST /api/robots/stop - Stop robot cleaning (requires JWT + ownership)
+ * - POST /api/robots/delete - Remove robot from user account (requires JWT + ownership)
+ * - POST /api/robots/rename - Rename robot (requires JWT + ownership)
+ * 
+ * NOTE: All endpoints require JWT access token in Authorization header.
+ * Robot ownership is verified by the backend middleware.
+ * Backend uses status values: "roaming", "stopping", "off"
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 /**
- * Get All Robots - GET /robots
- * Retrieves list of all robots
+ * Helper function to check and log token expiration errors
+ * @param {Response} response - Fetch response object
+ * @param {Object} errorData - Parsed error data from response
+ * @param {string} apiName - Name of the API endpoint for logging
  */
-export const getRobots = async () => {
-  try {
-    // TODO: integrate with GET /robots
-    // const response = await fetch(`${API_BASE_URL}/robots`)
-    // if (!response.ok) throw new Error('Failed to fetch robots')
-    // return await response.json()
+function handleTokenExpiration(response, errorData, apiName) {
+  if (response.status === 401) {
+    const errorMessage = errorData.error || errorData.message || 'Unauthorized'
     
-    // Mock implementation
-    return [
-      { id: '1', name: 'WasteShark-001', status: 'Idle', battery: 85 },
-      { id: '2', name: 'WasteShark-002', status: 'Cleaning', battery: 72 },
-    ]
+    if (errorMessage.includes('TokenExpired') || errorMessage.includes('expired')) {
+      console.error(`[${apiName}] Access token expired:`, errorMessage)
+      console.log(`[${apiName}] Access token has expired. Refresh token may be used to get a new token.`)
+    } else if (errorMessage.includes('InvalidToken') || errorMessage.includes('Invalid')) {
+      console.error(`[${apiName}] Invalid access token:`, errorMessage)
+      console.log(`[${apiName}] Access token is invalid. User may need to log in again.`)
+    } else if (errorMessage.includes('No token provided')) {
+      console.error(`[${apiName}] No access token provided`)
+      console.log(`[${apiName}] Missing authentication token.`)
+    } else {
+      console.error(`[${apiName}] Authentication failed (401):`, errorMessage)
+    }
+  }
+}
+
+/**
+ * Get All Robots - POST /api/robots/fetch
+ * Retrieves list of all robots owned by the authenticated user
+ * 
+ * Backend Request:
+ * {
+ *   "userId": "user-uuid-here"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true,
+ *   "robots": [
+ *     {
+ *       "robot_id": "robot-uuid",
+ *       "name": "WasteShark-001",
+ *       "location": "Pool A"
+ *     }
+ *   ]
+ * }
+ * 
+ * NOTE: Backend returns robot_id (not id) and does not include status/battery.
+ * These are mapped/defaulted in the response transformation.
+ * 
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<Array>} Array of robot objects with id, robot_id, name, location, status, battery
+ */
+export const getRobots = async (userId, token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/robots/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({ userId })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      handleTokenExpiration(response, errorData, 'Robots API [getRobots]')
+      throw new Error(errorData.error || errorData.message || 'Failed to fetch robots')
+    }
+    
+    const data = await response.json()
+    // Transform backend response to match frontend expectations
+    // Map robot_id to id for consistency, add default status/battery
+    return data.robots.map(robot => ({
+      id: robot.robot_id,
+      robot_id: robot.robot_id,
+      name: robot.name,
+      location: robot.location || 'Unknown',
+      status: 'off', // Default status, will be updated via other means
+      battery: 0 // Default battery, not provided by backend
+    }))
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch robots')
   }
@@ -93,10 +170,19 @@ export const subscribeToRobotUpdates = (onUpdate, onError) => {
   // return eventSource
   
   // Mock implementation - simulate real-time updates
+  // NOTE: This is currently disabled to prevent overriding real robot data
+  // The mock EventSource is returned but doesn't send updates
+  // When real SSE is implemented, this will be replaced
+  
   const mockEventSource = {
-    close: () => clearInterval(mockInterval)
+    close: () => {
+      // No-op since we're not using intervals
+    }
   }
   
+  // Disabled: Mock updates were overriding real robot data
+  // Uncomment when real SSE endpoint is available:
+  /*
   const mockInterval = setInterval(() => {
     const mockData = {
       robots: [
@@ -107,184 +193,141 @@ export const subscribeToRobotUpdates = (onUpdate, onError) => {
     }
     onUpdate(mockData)
   }, 3000) // Update every 3 seconds
+  */
   
   return mockEventSource
 }
 
 /**
- * Start Cleaning - POST /robots/:robotId/start
+ * Start Cleaning - POST /api/robots/start
  * Command to start robot cleaning operation
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * Backend also:
+ * - Updates robot status to "roaming" in database
+ * - Publishes MQTT command: /robot/{robotId}/command with status: "roaming"
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const startCleaning = async (robotId, token) => {
+export const startCleaning = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with POST /robots/:robotId/start
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}/start`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to start cleaning')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { success: true, message: 'Cleaning started' }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      handleTokenExpiration(response, errorData, 'Robots API [startCleaning]')
+      throw new Error(errorData.error || errorData.message || 'Failed to start cleaning')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
     throw new Error(error.message || 'Failed to start cleaning')
   }
 }
 
 /**
- * Stop Cleaning - POST /robots/:robotId/stop
+ * Stop Cleaning - POST /api/robots/stop
  * Command to stop robot cleaning operation
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * Backend also:
+ * - Updates robot status to "stopping" in database
+ * - Publishes MQTT command: /robot/{robotId}/command with status: "stopping"
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
  */
-export const stopCleaning = async (robotId, token) => {
+export const stopCleaning = async (robotId, userId, token) => {
   try {
-    // TODO: integrate with POST /robots/:robotId/stop
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}/stop`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to stop cleaning')
-    // return await response.json()
+    const response = await fetch(`${API_BASE_URL}/api/robots/stop`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
     
-    // Mock implementation
-    return { success: true, message: 'Cleaning stopped' }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      handleTokenExpiration(response, errorData, 'Robots API [stopCleaning]')
+      throw new Error(errorData.error || errorData.message || 'Failed to stop cleaning')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
   } catch (error) {
     throw new Error(error.message || 'Failed to stop cleaning')
   }
 }
 
 /**
- * Create Robot - POST /robots
- * Creates a new robot in the system
- */
-export const createRobot = async (robotData, token) => {
-  try {
-    // TODO: integrate with POST /robots
-    // const response = await fetch(`${API_BASE_URL}/robots`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(robotData)
-    // })
-    // if (!response.ok) throw new Error('Failed to create robot')
-    // return await response.json()
-    
-    // Mock implementation
-    return { 
-      id: Date.now().toString(), 
-      ...robotData,
-      status: 'Idle',
-      battery: 100
-    }
-  } catch (error) {
-    throw new Error(error.message || 'Failed to create robot')
-  }
-}
-
-/**
- * Delete Robot - DELETE /robots/:robotId
- * Removes a robot from the system
- */
-export const deleteRobot = async (robotId, token) => {
-  try {
-    // TODO: integrate with DELETE /robots/:robotId
-    // const response = await fetch(`${API_BASE_URL}/robots/${robotId}`, {
-    //   method: 'DELETE',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to delete robot')
-    // return await response.json()
-    
-    // Mock implementation
-    return { success: true, message: 'Robot deleted' }
-  } catch (error) {
-    throw new Error(error.message || 'Failed to delete robot')
-  }
-}
-
-/**
- * Emergency Kill Switch - POST /robots/emergency-stop
- * Stops all robots immediately
- */
-export const emergencyStopAll = async (token) => {
-  try {
-    // TODO: integrate with POST /robots/emergency-stop
-    // const response = await fetch(`${API_BASE_URL}/robots/emergency-stop`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     Authorization: `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // if (!response.ok) throw new Error('Failed to execute emergency stop')
-    // return await response.json()
-    
-    // Mock implementation
-    return { success: true, message: 'All robots stopped' }
-  } catch (error) {
-    throw new Error(error.message || 'Failed to execute emergency stop')
-  }
-}
-
-/**
- * Create Test Robot - Creates a robot for the user after login
+ * Add Robot to User Account - POST /api/robots/new
+ * Assigns an existing robot to the user account
  * 
- * BACKEND CHANGE REQUIRED:
- * The current backend does NOT have an endpoint to CREATE new robots.
- * It only has POST /api/robots/new which ASSIGNS existing robots to users.
- * 
- * To support creating test robots on login, the backend needs a new endpoint:
- * 
- * POST /api/robots/create
- * Headers: Authorization: Bearer <token>
- * Body: {
- *   "name": "user@example.com",
- *   "location": "Test Location",
- *   "status": "off"
+ * Backend Request:
+ * {
+ *   "robotId": "existing-robot-id",
+ *   "userId": "user-uuid"
  * }
  * 
- * This endpoint should:
- * 1. Verify JWT token to get user_id
- * 2. Generate a unique robot_id (using uuid)
- * 3. Create robot in database with:
- *    - robot_id: generated UUID
- *    - owned_by_user_id: user_id from JWT
- *    - name: provided name (user's email)
- *    - location: provided location (optional)
- *    - status: "off" (default)
- * 4. Return: { success: true, robot_id: "...", name: "...", ... }
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
  * 
- * CURRENT IMPLEMENTATION:
- * This function attempts to use the existing /api/robots/new endpoint, but
- * it will fail because that endpoint requires an existing robot_id.
- * This is a placeholder that documents the required backend change.
+ * IMPORTANT: This endpoint does NOT create a new robot.
+ * It assigns an existing robot (by robot_id) to the user.
+ * The robot must already exist in the database.
  * 
- * @param {string} name - Robot name (user's email)
- * @param {string} userId - User ID from JWT token
+ * @param {string} robotId - Existing robot_id from database
+ * @param {string} userId - User UUID from JWT token
  * @param {string} token - JWT access token
- * @param {string} location - Optional location (default: "Test Location")
- * @returns {Promise<{success: boolean, robot_id?: string, name?: string}>}
+ * @returns {Promise<{success: boolean}>}
  */
-export const createTestRobot = async (name, userId, token, location = "Test Location") => {
+export const createRobot = async (robotId, userId, token) => {
   try {
-    // BACKEND CHANGE NEEDED: Replace this with a proper create endpoint
-    // The current /api/robots/new endpoint requires an existing robot_id,
-    // so this will not work without backend changes.
-    
-    // Option 1: Use existing endpoint (will fail - requires existing robot_id)
-    // This is commented out because it won't work:
-    /*
     const response = await fetch(`${API_BASE_URL}/api/robots/new`, {
       method: 'POST',
       headers: {
@@ -293,16 +336,50 @@ export const createTestRobot = async (name, userId, token, location = "Test Loca
       },
       credentials: 'include',
       body: JSON.stringify({
-        robotId: "some-existing-robot-id", // This doesn't exist!
+        robotId: robotId,
         userId: userId
       })
     })
-    */
     
-    // Option 2: Call new endpoint (once backend implements it)
-    // Uncomment when backend adds POST /api/robots/create:
-    /*
-    const response = await fetch(`${API_BASE_URL}/api/robots/create`, {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      handleTokenExpiration(response, errorData, 'Robots API [createRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to add robot')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
+  } catch (error) {
+    throw new Error(error.message || 'Failed to add robot')
+  }
+}
+
+/**
+ * Remove Robot from User Account - POST /api/robots/delete
+ * Removes the association between a robot and user account
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * NOTE: This does NOT delete the robot from the database, only removes
+ * the ownership association. The robot can be assigned to another user later.
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
+ */
+export const deleteRobot = async (robotId, userId, token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/robots/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,39 +387,169 @@ export const createTestRobot = async (name, userId, token, location = "Test Loca
       },
       credentials: 'include',
       body: JSON.stringify({
-        name: name,
-        location: location,
-        status: "off"
+        robotId: robotId,
+        userId: userId
       })
     })
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Failed to create robot')
+      handleTokenExpiration(response, errorData, 'Robots API [deleteRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to remove robot')
     }
     
     const data = await response.json()
-    return {
-      success: data.success,
-      robot_id: data.robot_id,
-      name: data.name,
-      location: data.location,
-      status: data.status || "off"
-    }
-    */
-    
-    // TEMPORARY: Return mock success until backend implements endpoint
-    // This allows the frontend to work without breaking, but the robot
-    // won't actually be created in the database
-    console.warn('Robot creation not implemented - backend endpoint needed. See function documentation.')
-    return {
-      success: true,
-      robot_id: `mock-robot-${Date.now()}`,
-      name: name,
-      location: location,
-      status: "off"
-    }
+    return { success: data.success }
   } catch (error) {
-    throw new Error(error.message || 'Failed to create test robot')
+    throw new Error(error.message || 'Failed to remove robot')
+  }
+}
+
+/**
+ * Rename Robot - POST /api/robots/rename
+ * Updates robot name and optionally location
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "robot-uuid",
+ *   "userId": "user-uuid",
+ *   "name": "New Robot Name",
+ *   "location": "New Location" (optional)
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * @param {string} robotId - Robot UUID
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} name - New robot name (required)
+ * @param {string} location - New location (optional)
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
+ */
+export const renameRobot = async (robotId, userId, name, location, token) => {
+  try {
+    const body = {
+      robotId: robotId,
+      userId: userId,
+      name: name
+    }
+    if (location) {
+      body.location = location
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/robots/rename`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      handleTokenExpiration(response, errorData, 'Robots API [renameRobot]')
+      throw new Error(errorData.error || errorData.message || 'Failed to rename robot')
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
+  } catch (error) {
+    throw new Error(error.message || 'Failed to rename robot')
+  }
+}
+
+/**
+ * Emergency Kill Switch - Stops all robots immediately
+ * 
+ * NOTE: Backend does not have a dedicated emergency stop endpoint.
+ * This function implements emergency stop by calling stopCleaning
+ * for each robot individually.
+ * 
+ * @param {Array<string>} robotIds - Array of robot UUIDs
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const emergencyStopAll = async (robotIds, userId, token) => {
+  try {
+    // Stop each robot individually since backend doesn't have bulk stop endpoint
+    const promises = robotIds.map(robotId => stopCleaning(robotId, userId, token))
+    await Promise.all(promises)
+    return { success: true, message: 'All robots stopped' }
+  } catch (error) {
+    throw new Error(error.message || 'Failed to execute emergency stop')
+  }
+}
+
+/**
+ * Add Robot to User Account - POST /api/robots/new
+ * Assigns an existing robot (by UUID) to the authenticated user's account
+ * 
+ * Backend Request:
+ * {
+ *   "robotId": "existing-robot-uuid",
+ *   "userId": "user-uuid"
+ * }
+ * 
+ * Backend Response:
+ * {
+ *   "success": true
+ * }
+ * 
+ * Backend Behavior:
+ * - Finds robot by robot_id (UUID)
+ * - Returns 404 if robot not found
+ * - Returns 403 if robot is already owned by another user
+ * - Assigns robot to user if not owned
+ * 
+ * NOTE: This endpoint does NOT create new robots. It only assigns existing
+ * robots that are not yet owned by any user. The robot must already exist
+ * in the database with a valid robot_id (UUID).
+ * 
+ * @param {string} robotId - Existing robot UUID that user wants to add
+ * @param {string} userId - User UUID from JWT token
+ * @param {string} token - JWT access token
+ * @returns {Promise<{success: boolean}>}
+ */
+export const newRobot = async (robotId, userId, token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/robots/new`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        robotId: robotId,
+        userId: userId
+      })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      
+      // Check for token expiration first
+      handleTokenExpiration(response, errorData, 'Robots API [newRobot]')
+      
+      // Handle specific error cases
+      if (response.status === 404) {
+        throw new Error('Robot not found. Please check the UUID and try again.')
+      } else if (response.status === 403) {
+        throw new Error('Robot is already owned by another user.')
+      } else {
+        throw new Error(errorData.error || errorData.message || 'Failed to add robot to your account')
+      }
+    }
+    
+    const data = await response.json()
+    return { success: data.success }
+  } catch (error) {
+    throw new Error(error.message || 'Failed to add robot to your account')
   }
 }

@@ -6,28 +6,36 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { availableMockRobotIds } from '../api/mocks'
 
 const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, onDeleteRobot, onEmergencyStop }) => {
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newRobot, setNewRobot] = useState({ name: '', location: '' })
+  const [robotId, setRobotId] = useState('')
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, robotId: null })
   const contextMenuRef = useRef(null)
 
   // Helper Function: Status badge styling
   const getStatusBadge = (status) => {
+    const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : 'IDLE'
     const colors = {
       IDLE: 'bg-gray-500',
       CLEANING: 'bg-green-500',
+      ROAMING: 'bg-green-500',
+      STOPPING: 'bg-gray-500',
+      OFF: 'bg-gray-700', // Darker gray to distinguish from idle
       MAINTENANCE: 'bg-orange-500',
       OFFLINE: 'bg-red-500',
     }
-    return colors[status] || 'bg-gray-500'
+    return colors[normalizedStatus] || 'bg-gray-500'
   }
 
   const handleSubmitAdd = (e) => {
     e.preventDefault()
-    onAddRobot(newRobot)
-    setNewRobot({ name: '', location: '' })
+    if (!robotId.trim()) {
+      return
+    }
+    onAddRobot(robotId.trim())
+    setRobotId('')
     setShowAddForm(false)
   }
 
@@ -91,33 +99,62 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
           {/* Add Robot Form */}
           {showAddForm && (
             <div className="glass-effect rounded-lg p-3 mb-4 border border-white/10">
-              <form onSubmit={handleSubmitAdd} className="space-y-2">
-                <input
-                  type="text"
-                  value={newRobot.name}
-                  onChange={(e) => setNewRobot({ ...newRobot, name: e.target.value })}
-                  placeholder="Robot Name"
-                  required
-                  className="w-full px-3 py-2 bg-navy text-white text-sm rounded-lg border border-white/10 focus:border-royal focus:outline-none focus:ring-1 focus:ring-royal transition-all"
-                />
-                <input
-                  type="text"
-                  value={newRobot.location}
-                  onChange={(e) => setNewRobot({ ...newRobot, location: e.target.value })}
-                  placeholder="Location"
-                  required
-                  className="w-full px-3 py-2 bg-navy text-white text-sm rounded-lg border border-white/10 focus:border-royal focus:outline-none focus:ring-1 focus:ring-royal transition-all"
-                />
+              <form onSubmit={handleSubmitAdd} className="space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Available Robots
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
+                    {availableMockRobotIds.map((robot) => (
+                      <div
+                        key={robot.robotId}
+                        onClick={() => setRobotId(robot.robotId)}
+                        className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                          robotId === robot.robotId
+                            ? 'bg-royal/20 border-royal'
+                            : 'bg-navy/50 border-white/10 hover:border-royal/30 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-white">{robot.name}</p>
+                            <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-navy/50 rounded">
+                              {robot.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400">{robot.location}</p>
+                          <p className="text-xs text-gray-500 font-mono break-all text-royal-light">
+                            {robot.robotId}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={robotId}
+                    onChange={(e) => setRobotId(e.target.value)}
+                    placeholder="Or enter Robot ID (UUID) manually"
+                    className="w-full px-3 py-2 bg-navy text-white text-sm rounded-lg border border-white/10 focus:border-royal focus:outline-none focus:ring-1 focus:ring-royal transition-all"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Click a robot above or enter the UUID manually to assign it to your account
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-royal to-royal-dark hover:from-royal-dark hover:to-royal text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                    disabled={!robotId.trim()}
+                    className="flex-1 bg-gradient-to-r from-royal to-royal-dark hover:from-royal-dark hover:to-royal text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add
+                    Add Robot
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowAddForm(false)}
+                    onClick={() => {
+                      setShowAddForm(false)
+                      setRobotId('')
+                    }}
                     className="flex-1 glass-effect text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:bg-white/10"
                   >
                     Cancel
@@ -143,9 +180,9 @@ const RobotListSidebar = ({ robots, selectedRobotId, onSelectRobot, onAddRobot, 
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-sm font-bold text-white">{robot.name}</h3>
                 </div>
-                <p className="text-xs text-gray-400 mb-2">{robot.location}</p>
+                <p className="text-xs text-gray-400 mb-2">{robot.location || 'No location'}</p>
                 <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold text-white uppercase shadow-md ${getStatusBadge(robot.status)}`}>
-                  {robot.status}
+                  {robot.status === 'roaming' ? 'CLEANING' : robot.status === 'stopping' ? 'IDLE' : robot.status === 'off' ? 'OFF' : (robot.status || 'IDLE').toUpperCase()}
                 </span>
               </div>
             ))}

@@ -4,7 +4,6 @@
  * INTEGRATION STATUS:
  * - Login: ✅ Integrated with backend POST /api/users/login
  * - Signup: ✅ Integrated with backend POST /api/users/signup
- * - Robot Creation: ⚠️ Requires backend endpoint (documented in createTestRobot function)
  * 
  * UML ANALYSIS:
  * This component implements a Singleton pattern for global authentication state.
@@ -18,18 +17,18 @@
  * JWT FLOW:
  * 1. Login -> Backend returns access token + sets refresh token cookie
  * 2. Store access token and user_id in localStorage
- * 3. Create test robot with name = user's email (if backend supports it)
- * 4. Logout -> Clear token from localStorage
+ * 3. Logout -> Clear token from localStorage
  * 
  * NOTE: Backend uses HTTP-only cookies for refresh tokens (7 day expiry).
  * Access tokens are stored in localStorage (15 minute expiry).
+ * 
+ * NOTE: Users can add robots to their account using the robot UUID in the Dashboard.
+ * See the newRobot function in robots.js for details.
  */
 
 import { createContext, useState, useEffect, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { loginUser, createUser as signupUser } from '../api/auth'
-import { createTestRobot } from '../api/robots'
 
 // Context creation: Singleton pattern for global auth state
 const AuthContext = createContext(null)
@@ -59,17 +58,19 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user')
     
     if (storedToken && storedUserId) {
+      console.log('[AuthContext] Restoring session from localStorage')
       setToken(storedToken)
       setUserId(storedUserId)
       if (storedUser) {
         setUser(JSON.parse(storedUser))
       }
+    } else {
+      console.log('[AuthContext] No stored session found')
     }
     setLoading(false)
   }, [])
 
   // Login Handler: Implements JWT authentication flow
-  // After successful login, creates a test robot with name = user's email
   const login = async (email, password) => {
     try {
       // Call backend login endpoint
@@ -83,26 +84,14 @@ export const AuthProvider = ({ children }) => {
           user_id: result.user_id
         }
         
+        console.log('[AuthContext] Login successful - storing access token in localStorage')
+        console.log('[AuthContext] Refresh token stored in HTTP-only cookie (7 day expiry)')
         setToken(result.token)
         setUserId(result.user_id)
         setUser(userData)
         localStorage.setItem('token', result.token)
         localStorage.setItem('userId', result.user_id)
         localStorage.setItem('user', JSON.stringify(userData))
-        
-        // Create test robot with name = user's email
-        // NOTE: This requires backend endpoint POST /api/robots/create
-        // See createTestRobot function documentation in robots.js for details
-        try {
-          await createTestRobot(email, result.user_id, result.token)
-          // Robot creation is silent - it's a test robot, so we don't show success toast
-          // If backend doesn't support it, it will just log a warning
-        } catch (robotError) {
-          // Robot creation failed, but login was successful
-          // Log error but don't block login flow
-          console.error('Failed to create test robot:', robotError)
-          // No toast error - this is expected if backend doesn't have the endpoint yet
-        }
         
         toast.success('Login successful!')
         return { success: true, user_id: result.user_id }
@@ -140,6 +129,7 @@ export const AuthProvider = ({ children }) => {
 
   // Logout Handler: Clears authentication state
   const logout = () => {
+    console.log('[AuthContext] Logging out - clearing tokens and user data')
     setToken(null)
     setUser(null)
     setUserId(null)
