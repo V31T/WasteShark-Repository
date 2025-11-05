@@ -157,6 +157,7 @@ function setupMQTTEndpoints(path) {
 }
 
 async function setupMongoose() {
+	console.log("Connecting to Mongoose...")
 	await mongoose.connect(`mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@localhost:27017/Project?authSource=admin`)
 
 	console.log("Mongoose connected")
