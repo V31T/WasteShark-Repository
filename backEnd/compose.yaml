@@ -14,7 +14,7 @@ services:
             - robot-network
 
     mosquitto-broker:
-        image: eclipse-mosquitto
+        image: eclipse-mosquitto:2.0-openssl
         restart: always
         networks:
             - robot-network

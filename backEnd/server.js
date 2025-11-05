@@ -192,10 +192,21 @@ async function loadDefaultDatabase() {
 
 async function setupMQTT() {
 	const ip = process.env.USE_PRODUCTION_IPS ? "mosquitto-broker" : "localhost"
+	const port = process.env.USE_PRODUCTION_IPS ? process.env.MQTTS_PORT : process.env.MQTT_PORT
+	const mqttString = process.env.USE_PRODUCTION_IPS ? "mqtts" : "mqtt"
 
-	const client = mqtt.connect(`mqtt://${ip}:${process.env.MQTT_PORT}`, {
+	const connectionOptions = {}
+
+	if (process.env.USE_PRODUCTION_IPS) {
+		// In production, use TLS
+		connectionOptions.ca = fs.readFileSync('/ssl/origin.pem')
+		connectionOptions.rejectUnauthorized = false
+	}
+
+	const client = mqtt.connect(`${mqttString}://${ip}:${port}`, {
 		username: process.env.MQTT_USERNAME,
-		password: process.env.MQTT_PASSWORD
+		password: process.env.MQTT_PASSWORD,
+		...connectionOptions
 	})
 
 	mqttClient = client
