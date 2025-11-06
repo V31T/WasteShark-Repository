@@ -13,19 +13,6 @@ async function run(client, data) {
 	for (const res of serverSentEvents) {
 		res.write(`data: ${dataString}\n\n`)
 	}
-
-	try {
-		await Robot.updateOne({
-			robot_id: data.robotId
-		},
-		{
-			$set: {
-				status: data.status
-			}
-		})
-	} catch (error) {
-		console.error("Error updating robot status in database:", error)
-	}
 }
 
 module.exports = {
