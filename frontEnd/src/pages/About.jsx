@@ -20,6 +20,14 @@ import { teamColors, teamMembers } from '../data/team'
 import Carousel from '../components/Carousel'
 import PageTransition from '../components/PageTransition'
 import TeamCard from '../components/TeamCard'
+// Import screenshot images for carousel
+import screenshot1 from '../assets/Screenshot 2025-11-05 214123.png'
+import screenshot2 from '../assets/Screenshot 2025-11-05 214138.png'
+import screenshot3 from '../assets/Screenshot 2025-11-05 214142.png'
+import screenshot4 from '../assets/Screenshot 2025-11-05 214147.png'
+import screenshot5 from '../assets/Screenshot 2025-11-05 214151.png'
+import screenshot6 from '../assets/Screenshot 2025-11-05 214156.png'
+import screenshot7 from '../assets/Screenshot 2025-11-05 214201.png'
 
 const About = () => {
   const teamCardsRef = useRef([])
@@ -232,13 +240,13 @@ const About = () => {
             >
               <Carousel
                 images={[
-                  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1560258018-c7db7645254e?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1544551763-8a2f91935c3a?auto=format&fit=crop&w=1200&q=80",
+                  screenshot1,
+                  screenshot2,
+                  screenshot3,
+                  screenshot4,
+                  screenshot5,
+                  screenshot6,
+                  screenshot7,
                 ]}
               />
             </motion.div>
@@ -350,6 +358,10 @@ const About = () => {
                                 alt={member.name}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                 loading="lazy"
+                                onError={(e) => {
+                                  // Fallback to avatar if image fails to load
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`
+                                }}
                               />
                             </div>
 
