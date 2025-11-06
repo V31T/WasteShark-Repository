@@ -451,39 +451,23 @@ const Dashboard = () => {
               <div className="glass-effect rounded-xl p-6 mb-6 border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4">Quick Overview</h3>
                 
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="bg-navy-lighter/50 rounded-lg p-4 border border-white/5">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-sm text-gray-400">Battery:</p>
-                      <p className="text-white font-bold text-xl">{selectedRobot.battery}%</p>
-                    </div>
-                    <div className="w-full bg-navy-lighter rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          selectedRobot.battery > 50 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                          selectedRobot.battery > 20 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-red-500 to-red-600'
-                        }`}
-                        style={{ width: `${selectedRobot.battery}%` }}
-                      ></div>
-                    </div>
+                <div className="bg-navy-lighter/50 rounded-lg p-4 border border-white/5">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm text-gray-400">Battery:</p>
+                    <p className="text-white font-bold text-xl">{telemetry.battery || selectedRobot.battery || 0}%</p>
                   </div>
-
-                  <div className="bg-navy-lighter/50 rounded-lg p-4 border border-white/5">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-sm text-gray-400">Cleaning Progress:</p>
-                      <p className="text-white font-bold text-xl">{selectedRobot.progress}%</p>
-                    </div>
-                    <div className="w-full bg-navy-lighter rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-royal to-royal-dark h-2 rounded-full transition-all"
-                        style={{ width: `${selectedRobot.progress}%` }}
-                      ></div>
-                    </div>
+                  <div className="w-full bg-navy-lighter rounded-full h-2 mb-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        (telemetry.battery || selectedRobot.battery || 0) > 50 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                        (telemetry.battery || selectedRobot.battery || 0) > 20 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-red-500 to-red-600'
+                      }`}
+                      style={{ width: `${telemetry.battery || selectedRobot.battery || 0}%` }}
+                    ></div>
                   </div>
-
-                  <div className="bg-navy-lighter/50 rounded-lg p-4 border border-white/5">
-                    <p className="text-sm text-gray-400 mb-2">Runtime:</p>
-                    <p className="text-3xl font-bold text-white">{selectedRobot.runtime}</p>
+                  <div className="flex justify-between text-xs mt-2">
+                    <span className="text-gray-500">{telemetry.voltage.toFixed(1)}V</span>
+                    <span className="text-gray-500">{telemetry.current.toFixed(1)}A</span>
                   </div>
                 </div>
               </div>
