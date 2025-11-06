@@ -13,7 +13,7 @@ const serverSentEvents = {}
 
 let mqttClient
 
-require('dotenv').config()
+require("dotenv").config();
 
 function loadApiRoutes() {
 	// CORS Configuration
