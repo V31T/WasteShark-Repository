@@ -229,7 +229,7 @@ async function setupMQTT() {
 		// Call the appropriate endpoint function based on the topic
 		if (topic in mqttListeners) {
 			const data = JSON.parse(payload.toString())
-
+			console.log("Received")
 			if (!data || data.authentication_key !== process.env.MQTT_AUTHENTICATION_KEY) {
 				return
 			}
