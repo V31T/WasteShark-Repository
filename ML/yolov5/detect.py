@@ -26,12 +26,6 @@ Usage - formats:
                                  yolov5s.tflite             # TensorFlow Lite
                                  yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
                                  yolov5s_paddle_model       # PaddlePaddle
-
-YOLOv5 detect.py tuned for Raspberry Pi USB camera
-- Defaults to webcam 0
-- Uses V4L2 backend on Linux
-- Headless-safe: QT_QPA_PLATFORM=offscreen
-- Optional --allow-fallback to use a sample image if the camera isn't available
 """
 
 import argparse
@@ -42,11 +36,6 @@ import sys
 from pathlib import Path
 
 import torch
-
-# Headless Qt (avoid "xcb" plugin errors on Pi)
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-# Prefer V4L2 for OpenCV on Linux (best with USB cams)
-os.environ.setdefault("OPENCV_VIDEOIO_PRIORITY_V4L2", "1")
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -77,35 +66,9 @@ from utils.general import (
 from utils.torch_utils import select_device, smart_inference_mode
 
 
-def ensure_webcam_available(index: int, allow_fallback: bool, root_path: Path) -> str:
-    """
-    Ensure the webcam device opens. If not and allow_fallback is False, raise.
-    If allow_fallback is True, return a valid sample image path.
-    """
-    backend = cv2.CAP_V4L2 if platform.system() == "Linux" else 0
-    cap = cv2.VideoCapture(index, backend)
-    if cap.isOpened():
-        # Try a couple of practical defaults for many USB cams
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        cap.set(cv2.CAP_PROP_FPS, 30)
-        cap.release()
-        return str(index)
-
-    cap.release()
-    if allow_fallback:
-        LOGGER.warning(f"Webcam '{index}' not available, falling back to sample image.")
-        return str(root_path / "data/images/bus.jpg")
-    else:
-        raise RuntimeError(
-            f"Webcam '{index}' could not be opened. "
-            f"Check that it appears as /dev/video0 and that your user is in the 'video' group."
-        )
-
-
 @smart_inference_mode()
 def run(
-    weights=ROOT / "runs/train_custom/exp11/latest.pt",  # model path or triton URL
+    weights=ROOT / "runs/train_custom/exp11/last.pt",  # model path or triton URL
     source=ROOT / "data/images",  # file/dir/URL/glob/screen/0(webcam)
     data=ROOT / "data/coco128.yaml",  # dataset.yaml path
     imgsz=(640, 640),  # inference size (height, width)
@@ -134,7 +97,6 @@ def run(
     half=False,  # use FP16 half-precision inference
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
-    allow_fallback=False,  # NEW: only use fallback if you ask for it
 ):
     """
     Runs YOLOv5 detection inference on various sources like images, videos, directories, streams, etc.
@@ -171,7 +133,6 @@ def run(
         half (bool): If True, use FP16 half-precision inference. Default is False.
         dnn (bool): If True, use OpenCV DNN backend for ONNX inference. Default is False.
         vid_stride (int): Stride for processing video frames, to skip frames between processing. Default is 1.
-        allow_fallback (bool): If True, fallback to sample image if webcam fails. Default is False.
 
     Returns:
         None
@@ -187,80 +148,45 @@ def run(
         run(source='data/videos/example.mp4', weights='yolov5s.pt', conf_thres=0.4, device='0')
         ```
     """
-    # Resolve the source for camera testing
-    s = str(source)
-    if s.isnumeric():  # webcam index
-        s = ensure_webcam_available(int(s), allow_fallback, ROOT)
-
-    save_img = not nosave and not s.endswith(".txt")  # save inference images
-    is_file = Path(s).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
-    is_url = s.lower().startswith(("rtsp://", "rtmp://", "http://", "https://"))
-    webcam = s.isnumeric() or s.endswith(".streams") or (is_url and not is_file)
-    screenshot = s.lower().startswith("screen")
+    source = str(source)
+    save_img = not nosave and not source.endswith(".txt")  # save inference images
+    is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
+    is_url = source.lower().startswith(("rtsp://", "rtmp://", "http://", "https://"))
+    webcam = source.isnumeric() or source.endswith(".streams") or (is_url and not is_file)
+    screenshot = source.lower().startswith("screen")
     if is_url and is_file:
-        s = check_file(s)  # download
+        source = check_file(source)  # download
 
-    # Output directory
+    # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     (save_dir / "labels" if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
-    # Model
+    # Load model
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-    # Data loader
+    # Dataloader
     bs = 1  # batch_size
-    try:
-        if webcam:
-            view_img = check_imshow(warn=True)
-            # LoadStreams will use OpenCV and should honor the V4L2 backend we set
-            dataset = LoadStreams(s, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
-            bs = len(dataset)
-            # Trigger a read to validate pipeline early
-            _ = next(iter(dataset))
-        elif screenshot:
-            dataset = LoadScreenshots(s, img_size=imgsz, stride=stride, auto=pt)
-        else:
-            dataset = LoadImages(s, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
-            if not getattr(dataset, "files", []):
-                raise RuntimeError(f"No input files found for source: {s}")
-    except Exception as e:
-        if allow_fallback:
-            LOGGER.warning(f"Primary dataloader failed for source '{s}' ({e}). Using sample image instead.")
-            s = str(ROOT / "data/images/bus.jpg")
-            dataset = LoadImages(s, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
-            webcam = False
-        else:
-            raise
-
+    if webcam:
+        view_img = check_imshow(warn=True)
+        dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
+        bs = len(dataset)
+    elif screenshot:
+        dataset = LoadScreenshots(source, img_size=imgsz, stride=stride, auto=pt)
+    else:
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
 
-    # Warmup & profiling
+    # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
-
-    # Define the path for the CSV file
-    csv_path = save_dir / "predictions.csv"
-
-    # Create or append to the CSV file
-    def write_to_csv(image_name, prediction, confidence):
-        """Writes prediction data for an image to a CSV file, appending if the file exists."""
-        row = {"Image Name": image_name, "Prediction": prediction, "Confidence": confidence}
-        file_exists = os.path.isfile(csv_path)
-        with open(csv_path, "a", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=row.keys())
-            if not file_exists:
-                w.writeheader()
-            w.writerow(row)
-
-    # Inference loop
-    for path, im, im0s, vid_cap, s_log in dataset:
+    for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
             im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
-            im /= 255.0  # 0 - 255 to 0.0 - 1.0
+            im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
                 im = im[None]  # expand for batch dim
             if model.xml and im.shape[0] > 1:
@@ -268,39 +194,54 @@ def run(
 
         # Inference
         with dt[1]:
-            vis_dir = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+            visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             if model.xml and im.shape[0] > 1:
                 pred = None
                 for image in ims:
                     if pred is None:
-                        pred = model(image, augment=augment, visualize=vis_dir).unsqueeze(0)
+                        pred = model(image, augment=augment, visualize=visualize).unsqueeze(0)
                     else:
-                        pred = torch.cat((pred, model(image, augment=augment, visualize=vis_dir).unsqueeze(0)), dim=0)
+                        pred = torch.cat((pred, model(image, augment=augment, visualize=visualize).unsqueeze(0)), dim=0)
                 pred = [pred, None]
             else:
-                pred = model(im, augment=augment, visualize=vis_dir)
-
+                pred = model(im, augment=augment, visualize=visualize)
         # NMS
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+
+        # Second-stage classifier (optional)
+        # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
+
+        # Define the path for the CSV file
+        csv_path = save_dir / "predictions.csv"
+
+        # Create or append to the CSV file
+        def write_to_csv(image_name, prediction, confidence):
+            """Writes prediction data for an image to a CSV file, appending if the file exists."""
+            data = {"Image Name": image_name, "Prediction": prediction, "Confidence": confidence}
+            file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=data.keys())
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerow(data)
 
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
-                s_log += f"{i}: "
+                s += f"{i}: "
             else:
                 p, im0, frame = path, im0s.copy(), getattr(dataset, "frame", 0)
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
             txt_path = str(save_dir / "labels" / p.stem) + ("" if dataset.mode == "image" else f"_{frame}")  # im.txt
-            s_log += "{:g}x{:g} ".format(*im.shape[2:])  # print string
+            s += "{:g}x{:g} ".format(*im.shape[2:])  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -308,14 +249,14 @@ def run(
                 # Print results
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
-                    s_log += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     c = int(cls)  # integer class
                     label = names[c] if hide_conf else f"{names[c]}"
-                    conf_f = float(conf)
-                    confidence_str = f"{conf_f:.2f}"
+                    confidence = float(conf)
+                    confidence_str = f"{confidence:.2f}"
 
                     if save_csv:
                         write_to_csv(p.name, label, confidence_str)
@@ -332,9 +273,9 @@ def run(
                             f.write(("%g " * len(line)).rstrip() % line + "\n")
 
                     if save_img or save_crop or view_img:  # Add bbox to image
-                        label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf_f:.2f}")
+                        c = int(cls)  # integer class
+                        label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                         annotator.box_label(xyxy, label, color=colors(c, True))
-
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
 
@@ -368,16 +309,16 @@ def run(
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
-        LOGGER.info(f"{s_log}{'' if len(det) else '(no detections), '}{dt[1].dt * 1e3:.1f}ms")
+        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1e3:.1f}ms")
 
     # Print results
-    t = tuple(x.t / max(seen, 1) * 1e3 for x in dt)  # speeds per image
+    t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
     LOGGER.info(f"Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}" % t)
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ""
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
-        strip_optimizer(weights if isinstance(weights, (list, tuple)) else [weights])
+        strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
 
 def parse_opt():
@@ -414,7 +355,6 @@ def parse_opt():
         --dnn (bool, optional): Flag to use OpenCV DNN for ONNX inference. Defaults to False.
         --vid-stride (int, optional): Video frame-rate stride, determining the number of frames to skip in between
             consecutive frames. Defaults to 1.
-        --allow-fallback (bool, optional): If webcam fails, use sample image. Defaults to False.
 
     Returns:
         argparse.Namespace: Parsed command-line arguments as an argparse.Namespace object.
@@ -426,7 +366,7 @@ def parse_opt():
         ```
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--weights", nargs="+", type=str, default=ROOT / "runs/train_custom/exp11/latest.pt", help="model path or triton URL")
+    parser.add_argument("--weights", nargs="+", type=str, default=ROOT / "yolov5s.pt", help="model path or triton URL")
     parser.add_argument("--source", type=str, default=ROOT / "data/images", help="file/dir/URL/glob/screen/0(webcam)")
     parser.add_argument("--data", type=str, default=ROOT / "data/coco128.yaml", help="(optional) dataset.yaml path")
     parser.add_argument("--imgsz", "--img", "--img-size", nargs="+", type=int, default=[640], help="inference size h,w")
@@ -460,7 +400,6 @@ def parse_opt():
     parser.add_argument("--half", action="store_true", help="use FP16 half-precision inference")
     parser.add_argument("--dnn", action="store_true", help="use OpenCV DNN for ONNX inference")
     parser.add_argument("--vid-stride", type=int, default=1, help="video frame-rate stride")
-    parser.add_argument("--allow-fallback", action="store_true", help="if webcam fails, use sample image")
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(vars(opt))
