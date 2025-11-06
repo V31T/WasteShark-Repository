@@ -15,14 +15,14 @@
  */
 
 export const teamMembers = [
+  // Frontend Team
+  { name: "Henry Pham", role: "Frontend Lead", team: "Frontend" },
+  { name: "Kardin Nguyen", role: "Frontend Team Member", team: "Frontend" },
+
   // Backend Team
   { name: "Rishabh Jinesh", role: "Project Director, Backend Lead", team: "Backend" },
   { name: "Colin Lou", role: "Backend Team Member", team: "Backend" },
   { name: "Tavishi Bansal", role: "Backend Team Member", team: "Backend" },
-
-  // Frontend Team
-  { name: "Henry Pham", role: "Frontend Lead", team: "Frontend" },
-  { name: "Kardin Nguyen", role: "Frontend Team Member", team: "Frontend" },
 
   // Machine Learning Team
   { name: "Tanuj Asthana", role: "Machine Learning Lead", team: "Machine Learning" },
@@ -35,8 +35,8 @@ export const teamMembers = [
   { name: "Kiwook Kim", role: "Electrical Team Member", team: "Electrical" },
 
   // Mechanical Team
-  { name: "Alondra Sanchez", role: "Mechanical Co-Lead", team: "Mechanical" },
-  { name: "Dylan Lau", role: "Mechanical Co-Lead", team: "Mechanical" },
+  { name: "Dylan Lau", role: "Mechanical Lead", team: "Mechanical" },
+  { name: "Alondra Sanchez", role: "Mechanical Team Member", team: "Mechanical" },
   { name: "Derek Trac", role: "Mechanical Team Member", team: "Mechanical" },
   { name: "Tarren Mai", role: "Mechanical Team Member", team: "Mechanical" },
 ]
