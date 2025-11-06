@@ -39,19 +39,20 @@ const Dashboard = () => {
   const [initialLoad, setInitialLoad] = useState(true)
   
   // Telemetry state - stores real-time telemetry data for selected robot
+  // Initialize with mock data for display
   const [telemetry, setTelemetry] = useState({
-    // Attitude
-    roll: 0,
-    pitch: 0,
-    yaw: 0,
+    // Attitude - idle robot in water (nearly level, slight natural variations)
+    roll: 0.3,
+    pitch: -0.2,
+    yaw: 0.0,
     // Speed & Altitude
     airspeed: 0,
-    groundspeed: 0,
+    groundspeed: 0.0,
     altitude: 0,
     // Battery
-    voltage: 0,
-    current: 0,
-    battery: 0
+    voltage: 12.6,
+    current: 2.5,
+    battery: 95
   })
   
   // Ref to store telemetry subscription for cleanup
