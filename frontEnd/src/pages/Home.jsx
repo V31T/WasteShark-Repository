@@ -88,9 +88,11 @@ const Home = () => {
                     Get Started
                   </button>
                 </Link>
-                <button className="px-12 py-4 glass-effect text-white rounded-xl text-lg font-semibold hover:bg-white/10 transition-all transform hover:-translate-y-1 border-2 border-white/20 hover:border-cyan-400/50">
-                  Learn More
-                </button>
+                <Link to="/about">
+                  <button className="px-12 py-4 glass-effect text-white rounded-xl text-lg font-semibold hover:bg-white/10 transition-all transform hover:-translate-y-1 border-2 border-white/20 hover:border-cyan-400/50">
+                    Learn More
+                  </button>
+                </Link>
               </div>
 
               {/* Feature Highlights - Colorful Cards */}
@@ -129,90 +131,6 @@ const Home = () => {
           </div>
         </section>
 
-     {/* About Our Team Section */}
-     <section className="bg-gradient-to-b from-navy via-indigo-950/30 to-navy text-white py-24 relative overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 overflow-hidden opacity-40">
-          <div className="absolute top-40 right-1/4 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-40 left-1/4 w-72 h-72 bg-teal-500/20 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-              About Our Team
-            </h2>
-            <p className="text-xl max-w-4xl mx-auto text-gray-200 leading-relaxed">
-              Meet the talented individuals behind WasteShark's innovative pool cleaning technology. Our diverse team of experts brings together cutting-edge engineering and design to create the most advanced autonomous pool cleaning robot on the market.
-            </p>
-          </div>
-
-          {/* Team Cards with scroll animation */}
-          <div className="flex flex-col gap-8">
-            <div 
-              ref={(el) => (teamCardsRef.current[0] = el)}
-              className="opacity-0 transition-all duration-700"
-              style={{ transitionDelay: '0ms' }}
-            >
-              <TeamCard
-                color="bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600"
-                icon="⚡"
-                teamName="Electrical Team"
-                title="Electrical Engineering Team"
-                description="Our electrical engineers design and develop the advanced control systems, sensors, and power management that make WasteShark's autonomous navigation possible. They ensure reliable operation and efficient power consumption."
-                skills={[
-                  'Autonomous Navigation Systems',
-                  'Sensor Integration',
-                  'Control Algorithms',
-                  'Power Management'
-                ]}
-              />
-            </div>
-
-            <div 
-              ref={(el) => (teamCardsRef.current[1] = el)}
-              className="opacity-0 transition-all duration-700"
-              style={{ transitionDelay: '100ms' }}
-            >
-              <TeamCard
-                color="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
-                icon="🔧"
-                teamName="Mechanical Team"
-                title="Mechanical Engineering Team"
-                description="Our mechanical engineers create the robust, water-resistant chassis and propulsion systems that allow WasteShark to navigate and clean pools effectively. They focus on durability and performance in aquatic environments."
-                skills={[
-                  'Underwater Propulsion',
-                  'Debris Collection Systems',
-                  'Durable Materials',
-                  'Waterproof Design'
-                ]}
-              />
-            </div>
-
-            <div 
-              ref={(el) => (teamCardsRef.current[2] = el)}
-              className="opacity-0 transition-all duration-700"
-              style={{ transitionDelay: '200ms' }}
-            >
-              <TeamCard
-                color="bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600"
-                icon="💻"
-                teamName="Software Team"
-                title="Software Development Team"
-                description="Our software engineers develop the intelligent algorithms and user interface that make WasteShark easy to use. They create the one-button operation system and ensure seamless user experience."
-                skills={[
-                  'AI Navigation',
-                  'User Interface Design',
-                  'Machine Learning',
-                  'Mobile App Development'
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-
         {/* Lower Content Section - Stats/Features */}
         <section className="bg-gradient-to-br from-navy via-blue-950/30 to-navy text-white py-24 relative overflow-hidden">
           <div className="absolute inset-0 opacity-30">
@@ -230,25 +148,7 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              <div className="glass-effect rounded-xl p-6 border-2 border-cyan-500/30 hover:border-cyan-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">99%</div>
-                <div className="text-sm text-gray-300">Cleaning Efficiency</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-green-500/30 hover:border-green-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-2">50+</div>
-                <div className="text-sm text-gray-300">Active Robots</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-purple-500/30 hover:border-purple-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">24/7</div>
-                <div className="text-sm text-gray-300">Monitoring</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-orange-500/30 hover:border-orange-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-2">3hrs</div>
-                <div className="text-sm text-gray-300">Battery Life</div>
-              </div>
-            </div>
+            
           </div>
         </section>
 

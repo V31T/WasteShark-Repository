@@ -14,12 +14,62 @@
  * 10. Better visual polish with refined shadows and borders
  */
 
-import { motion } from "framer-motion"
-import { teamColors, teamMembers } from "../data/team"
-import Carousel from "../components/Carousel"
-import PageTransition from "../components/PageTransition"
+import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { teamColors, teamMembers } from '../data/team'
+import Carousel from '../components/Carousel'
+import PageTransition from '../components/PageTransition'
+import TeamCard from '../components/TeamCard'
+// Import screenshot images for carousel
+import screenshot1 from '../assets/Screenshot 2025-11-05 214123.png'
+import screenshot2 from '../assets/Screenshot 2025-11-05 214138.png'
+import screenshot3 from '../assets/Screenshot 2025-11-05 214142.png'
+import screenshot4 from '../assets/Screenshot 2025-11-05 214147.png'
+import screenshot5 from '../assets/Screenshot 2025-11-05 214156.png'
+import screenshot6 from '../assets/Screenshot 2025-11-05 214201.png'
+// Import team images for hero section
+import softwareImg from '../assets/software.png'
+import mechanicalImg from '../assets/mechanical.png'
+import electricalImg from '../assets/electrical.png'
 
 const About = () => {
+  const teamCardsRef = useRef([])
+
+  /**
+   * Intersection Observer for scroll animations
+   * Triggers fade-in-up animation when cards enter viewport
+   */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in-up')
+            entry.target.style.opacity = '1'
+          }
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    )
+
+    teamCardsRef.current.forEach((card) => {
+      if (card) {
+        observer.observe(card)
+      }
+    })
+
+    return () => {
+      teamCardsRef.current.forEach((card) => {
+        if (card) {
+          observer.unobserve(card)
+        }
+      })
+    }
+  }, [])
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-navy">
@@ -80,7 +130,7 @@ const About = () => {
                 About Us
               </motion.h1>
               <motion.p
-                className="text-xl md:text-2xl lg:text-3xl mb-12 max-w-5xl mx-auto text-gray-200 leading-relaxed"
+                className="text-xl md:text-2xl mb-12 max-w-5xl mx-auto text-gray-200 leading-relaxed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
@@ -91,7 +141,7 @@ const About = () => {
 
             {/* Image Row - Enhanced with better hover effects and smoother animations */}
             <div className="relative mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 z-10 overflow-visible">
-              {/* Left Image - Enhanced hover effect */}
+              {/* Left Image - Mech Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, x: -50, rotate: -5 }}
                 animate={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
@@ -100,15 +150,15 @@ const About = () => {
                 className="relative group"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="Team working"
+                  src={mechanicalImg}
+                  alt="Software Team"
                   className="w-72 sm:w-80 md:w-96 lg:w-[28rem] rounded-xl shadow-2xl group-hover:shadow-cyan-500/30 transition-all duration-500"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </motion.div>
               
-              {/* Center Image - Enhanced with larger scale and prominence */}
+              {/* Center Image - Software Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -117,15 +167,15 @@ const About = () => {
                 className="relative group z-20"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="WasteShark prototype"
+                  src={softwareImg}
+                  alt="Mechanical Team"
                   className="w-80 sm:w-96 md:w-[32rem] lg:w-[36rem] rounded-xl shadow-2xl group-hover:shadow-purple-500/40 transition-all duration-500 ring-2 ring-purple-500/20 group-hover:ring-purple-500/40"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </motion.div>
               
-              {/* Right Image - Enhanced hover effect */}
+              {/* Right Image - Electrical Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, x: 50, rotate: 5 }}
                 animate={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
@@ -134,8 +184,8 @@ const About = () => {
                 className="relative group"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="Ocean cleanup"
+                  src={electricalImg}
+                  alt="Electrical Team"
                   className="w-72 sm:w-80 md:w-96 lg:w-[28rem] rounded-xl shadow-2xl group-hover:shadow-blue-500/30 transition-all duration-500"
                   loading="lazy"
                 />
@@ -193,13 +243,12 @@ const About = () => {
             >
               <Carousel
                 images={[
-                  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1560258018-c7db7645254e?auto=format&fit=crop&w=1200&q=80",
-                  "https://images.unsplash.com/photo-1544551763-8a2f91935c3a?auto=format&fit=crop&w=1200&q=80",
+                  screenshot1,
+                  screenshot2,
+                  screenshot3,
+                  screenshot4,
+                  screenshot5,
+                  screenshot6,
                 ]}
               />
             </motion.div>
@@ -307,10 +356,14 @@ const About = () => {
                               }`}
                             >
                               <img
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`}
+                                src={member.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`}
                                 alt={member.name}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                 loading="lazy"
+                                onError={(e) => {
+                                  // Fallback to avatar if image fails to load
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`
+                                }}
                               />
                             </div>
 
@@ -346,6 +399,80 @@ const About = () => {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </section>
+        
+        {/* Team Card Section */}
+        <section className="bg-gradient-to-b from-navy via-indigo-950/30 to-navy text-white py-24 relative overflow-hidden">
+          {/* Background decorative elements */}
+          <div className="absolute inset-0 overflow-hidden opacity-40">
+            <div className="absolute top-40 right-1/4 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-40 left-1/4 w-72 h-72 bg-teal-500/20 rounded-full blur-3xl"></div>
+          </div>
+
+          {/* Team Cards with scroll animation */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="flex flex-col gap-8">
+              <div 
+                ref={(el) => (teamCardsRef.current[0] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '0ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600"
+                  icon="⚡"
+                  teamName="Electrical Team"
+                  title="Electrical Engineering Team"
+                  description="Our electrical engineers design and develop the advanced control systems, sensors, and power management that make WasteShark's autonomous navigation possible. They ensure reliable operation and efficient power consumption."
+                  skills={[
+                    'Autonomous Navigation Systems',
+                    'Sensor Integration',
+                    'Control Algorithms',
+                    'Power Management'
+                  ]}
+                />
+              </div>
+
+              <div 
+                ref={(el) => (teamCardsRef.current[1] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '100ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
+                  icon="🔧"
+                  teamName="Mechanical Team"
+                  title="Mechanical Engineering Team"
+                  description="Our mechanical engineers create the robust, water-resistant chassis and propulsion systems that allow WasteShark to navigate and clean pools effectively. They focus on durability and performance in aquatic environments."
+                  skills={[
+                    'Underwater Propulsion',
+                    'Debris Collection Systems',
+                    'Durable Materials',
+                    'Waterproof Design'
+                  ]}
+                />
+              </div>
+
+              <div 
+                ref={(el) => (teamCardsRef.current[2] = el)}
+                className="opacity-0 transition-all duration-700"
+                style={{ transitionDelay: '200ms' }}
+              >
+                <TeamCard
+                  color="bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600"
+                  icon="💻"
+                  teamName="Software Team"
+                  title="Software Development Team"
+                  description="Our software engineers develop the intelligent algorithms and user interface that make WasteShark easy to use. They create the one-button operation system and ensure seamless user experience."
+                  skills={[
+                    'AI Navigation',
+                    'User Interface Design',
+                    'Machine Learning',
+                    'Mobile App Development'
+                  ]}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
