@@ -15,8 +15,6 @@ let mqttClient
 
 require("dotenv").config();
 
-let client = mqtt.connect("mqtt://127.0.0.1:1883")
-
 function loadApiRoutes() {
 	// CORS Configuration
 	// Allows requests from frontend origin and handles credentials (cookies)
