@@ -230,6 +230,10 @@ async function setupMQTT() {
 		if (topic in mqttListeners) {
 			const data = JSON.parse(payload.toString())
 
+			if (!data || data.authentication_key !== process.env.MQTT_AUTHENTICATION_KEY) {
+				return
+			}
+
 			for (const key in mqttListeners[topic]) {
 				mqttListeners[topic][key](client, data)
 			}
