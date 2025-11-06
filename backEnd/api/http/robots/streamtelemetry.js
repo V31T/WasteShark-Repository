@@ -4,7 +4,8 @@ const server = require(process.cwd() + "/server.js")
 
 function setupEndPoint(app) {
     app.get("/api/robots/streamtelemetry", verifyJWT, verifyRobotOwnership, async function(req, res) {
-        server.addServerSentEvent(res, "streamtelemetry/" + req.body.robotId);
+        const robotId = req.query.robotId || req.body.robotId;
+        server.addServerSentEvent(res, "streamtelemetry/" + robotId);
     })
 }
 

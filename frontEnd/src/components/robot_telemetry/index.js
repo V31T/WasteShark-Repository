@@ -6,6 +6,8 @@
  */
 
 export { default as BatteryStatus } from './BatteryStatus';
+export { default as AttitudeDisplay } from './AttitudeDisplay';
+export { default as SpeedAltitudeDisplay } from './SpeedAltitudeDisplay';
 export { default as TemperatureGauge } from './TemperatureGauge';
 export { default as LocationTracker } from './LocationTracker';
 export { default as SpeedMeter } from './SpeedMeter';
