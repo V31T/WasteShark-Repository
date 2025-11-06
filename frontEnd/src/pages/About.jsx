@@ -25,9 +25,12 @@ import screenshot1 from '../assets/Screenshot 2025-11-05 214123.png'
 import screenshot2 from '../assets/Screenshot 2025-11-05 214138.png'
 import screenshot3 from '../assets/Screenshot 2025-11-05 214142.png'
 import screenshot4 from '../assets/Screenshot 2025-11-05 214147.png'
-import screenshot5 from '../assets/Screenshot 2025-11-05 214151.png'
-import screenshot6 from '../assets/Screenshot 2025-11-05 214156.png'
-import screenshot7 from '../assets/Screenshot 2025-11-05 214201.png'
+import screenshot5 from '../assets/Screenshot 2025-11-05 214156.png'
+import screenshot6 from '../assets/Screenshot 2025-11-05 214201.png'
+// Import team images for hero section
+import softwareImg from '../assets/software.png'
+import mechanicalImg from '../assets/mechanical.png'
+import electricalImg from '../assets/electrical.png'
 
 const About = () => {
   const teamCardsRef = useRef([])
@@ -138,7 +141,7 @@ const About = () => {
 
             {/* Image Row - Enhanced with better hover effects and smoother animations */}
             <div className="relative mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 z-10 overflow-visible">
-              {/* Left Image - Enhanced hover effect */}
+              {/* Left Image - Mech Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, x: -50, rotate: -5 }}
                 animate={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
@@ -147,15 +150,15 @@ const About = () => {
                 className="relative group"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="Team working"
+                  src={mechanicalImg}
+                  alt="Software Team"
                   className="w-72 sm:w-80 md:w-96 lg:w-[28rem] rounded-xl shadow-2xl group-hover:shadow-cyan-500/30 transition-all duration-500"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </motion.div>
               
-              {/* Center Image - Enhanced with larger scale and prominence */}
+              {/* Center Image - Software Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -164,15 +167,15 @@ const About = () => {
                 className="relative group z-20"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="WasteShark prototype"
+                  src={softwareImg}
+                  alt="Mechanical Team"
                   className="w-80 sm:w-96 md:w-[32rem] lg:w-[36rem] rounded-xl shadow-2xl group-hover:shadow-purple-500/40 transition-all duration-500 ring-2 ring-purple-500/20 group-hover:ring-purple-500/40"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </motion.div>
               
-              {/* Right Image - Enhanced hover effect */}
+              {/* Right Image - Electrical Team */}
               <motion.div
                 initial={{ opacity: 0, y: 50, x: 50, rotate: 5 }}
                 animate={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
@@ -181,8 +184,8 @@ const About = () => {
                 className="relative group"
               >
                 <motion.img
-                  src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60"
-                  alt="Ocean cleanup"
+                  src={electricalImg}
+                  alt="Electrical Team"
                   className="w-72 sm:w-80 md:w-96 lg:w-[28rem] rounded-xl shadow-2xl group-hover:shadow-blue-500/30 transition-all duration-500"
                   loading="lazy"
                 />
@@ -246,7 +249,6 @@ const About = () => {
                   screenshot4,
                   screenshot5,
                   screenshot6,
-                  screenshot7,
                 ]}
               />
             </motion.div>

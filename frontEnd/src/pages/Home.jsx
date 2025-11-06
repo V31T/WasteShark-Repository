@@ -88,9 +88,11 @@ const Home = () => {
                     Get Started
                   </button>
                 </Link>
-                <button className="px-12 py-4 glass-effect text-white rounded-xl text-lg font-semibold hover:bg-white/10 transition-all transform hover:-translate-y-1 border-2 border-white/20 hover:border-cyan-400/50">
-                  Learn More
-                </button>
+                <Link to="/about">
+                  <button className="px-12 py-4 glass-effect text-white rounded-xl text-lg font-semibold hover:bg-white/10 transition-all transform hover:-translate-y-1 border-2 border-white/20 hover:border-cyan-400/50">
+                    Learn More
+                  </button>
+                </Link>
               </div>
 
               {/* Feature Highlights - Colorful Cards */}
@@ -146,25 +148,7 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              <div className="glass-effect rounded-xl p-6 border-2 border-cyan-500/30 hover:border-cyan-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">99%</div>
-                <div className="text-sm text-gray-300">Cleaning Efficiency</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-green-500/30 hover:border-green-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-2">50+</div>
-                <div className="text-sm text-gray-300">Active Robots</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-purple-500/30 hover:border-purple-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">24/7</div>
-                <div className="text-sm text-gray-300">Monitoring</div>
-              </div>
-              <div className="glass-effect rounded-xl p-6 border-2 border-orange-500/30 hover:border-orange-500/60 transition-all transform hover:-translate-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-2">3hrs</div>
-                <div className="text-sm text-gray-300">Battery Life</div>
-              </div>
-            </div>
+            
           </div>
         </section>
 
