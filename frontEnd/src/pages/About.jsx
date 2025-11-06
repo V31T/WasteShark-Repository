@@ -346,7 +346,7 @@ const About = () => {
                               }`}
                             >
                               <img
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`}
+                                src={member.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&size=128`}
                                 alt={member.name}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                 loading="lazy"
