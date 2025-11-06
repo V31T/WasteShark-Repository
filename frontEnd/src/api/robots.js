@@ -146,6 +146,137 @@ export const getRobotStatus = async (robotId, token) => {
 }
 
 /**
+ * Subscribe to Real-Time Robot Telemetry - SSE Stream
+ * Establishes SSE connection for live robot telemetry data
+ * 
+ * Backend Endpoint: GET /api/robots/streamtelemetry?robotId={robotId}
+ * 
+ * Backend sends telemetry data via SSE in format:
+ * data: {"robotId": "...", "battery": 85, "temperature": 25.5, "speed": 2.5, ...}
+ * 
+ * NOTE: Uses fetch with streaming instead of EventSource to support Authorization header
+ * 
+ * @param {string} robotId - Robot UUID to subscribe to
+ * @param {string} token - JWT access token
+ * @param {Function} onUpdate - Callback function called with telemetry data
+ * @param {Function} onError - Optional callback for errors
+ * @returns {Object} Object with close() method to disconnect
+ */
+export const subscribeToRobotTelemetry = (robotId, token, onUpdate, onError) => {
+  if (!robotId || !token) {
+    console.error('[Telemetry] Robot ID and token are required')
+    if (onError) onError(new Error('Robot ID and token are required'))
+    return { close: () => {} }
+  }
+
+  let isClosed = false
+  let reader = null
+  let controller = null
+
+  const connect = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/robots/streamtelemetry?robotId=${encodeURIComponent(robotId)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        handleTokenExpiration(response, errorData, 'Telemetry SSE [subscribeToRobotTelemetry]')
+        throw new Error(errorData.error || errorData.message || `Failed to connect: ${response.status}`)
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is not available')
+      }
+
+      reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      const readStream = async () => {
+        try {
+          while (!isClosed) {
+            const { done, value } = await reader.read()
+
+            if (done) {
+              if (!isClosed) {
+                console.log('[Telemetry] Stream ended, attempting to reconnect...')
+                // Stream ended, try to reconnect after a delay
+                setTimeout(() => {
+                  if (!isClosed) {
+                    connect()
+                  }
+                }, 3000)
+              }
+              break
+            }
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6)) // Remove 'data: ' prefix
+                  onUpdate(data)
+                } catch (parseError) {
+                  console.error('[Telemetry] Failed to parse SSE data:', parseError, line)
+                }
+              }
+            }
+          }
+        } catch (streamError) {
+          if (!isClosed) {
+            console.error('[Telemetry] Stream read error:', streamError)
+            if (onError) onError(streamError)
+            // Try to reconnect after error
+            setTimeout(() => {
+              if (!isClosed) {
+                connect()
+              }
+            }, 3000)
+          }
+        }
+      }
+
+      readStream()
+    } catch (error) {
+      console.error('[Telemetry] Connection error:', error)
+      if (onError) onError(error)
+      // Try to reconnect after error
+      if (!isClosed) {
+        setTimeout(() => {
+          if (!isClosed) {
+            connect()
+          }
+        }, 3000)
+      }
+    }
+  }
+
+  connect()
+
+  return {
+    close: () => {
+      isClosed = true
+      if (reader) {
+        reader.cancel().catch(() => {})
+      }
+      if (controller) {
+        controller.abort()
+      }
+    }
+  }
+}
+
+/**
  * Subscribe to Real-Time Robot Updates - EventSource
  * Establishes SSE connection for live robot status updates
  */

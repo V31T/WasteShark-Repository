@@ -16,21 +16,16 @@
  * User Actions -> API Calls -> State Updates -> Visual Feedback
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getRobots, subscribeToRobotUpdates, startCleaning, stopCleaning, newRobot, deleteRobot, emergencyStopAll } from '../api/robots'
+import { getRobots, subscribeToRobotUpdates, subscribeToRobotTelemetry, startCleaning, stopCleaning, newRobot, deleteRobot, emergencyStopAll } from '../api/robots'
 import { mockRobots } from '../api/mocks'
 import RobotListSidebar from '../components/RobotListSidebar'
 import toast from 'react-hot-toast'
 import {
   BatteryStatus,
-  TemperatureGauge,
-  LocationTracker,
-  SpeedMeter,
-  DepthSensor,
-  SystemHealth,
-  NetworkStatus,
-  MotorStatus
+  AttitudeDisplay,
+  SpeedAltitudeDisplay
 } from '../components/robot_telemetry'
 
 const Dashboard = () => {
@@ -42,6 +37,26 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false)
   const [systemNormal, setSystemNormal] = useState(true)
   const [initialLoad, setInitialLoad] = useState(true)
+  
+  // Telemetry state - stores real-time telemetry data for selected robot
+  // Initialize with mock data for display
+  const [telemetry, setTelemetry] = useState({
+    // Attitude - idle robot in water (nearly level, slight natural variations)
+    roll: 0.3,
+    pitch: -0.2,
+    yaw: 0.0,
+    // Speed & Altitude
+    airspeed: 0,
+    groundspeed: 0.0,
+    altitude: 0,
+    // Battery
+    voltage: 12.6,
+    current: 2.5,
+    battery: 95
+  })
+  
+  // Ref to store telemetry subscription for cleanup
+  const telemetrySubscriptionRef = useRef(null)
 
   const selectedRobot = robots.find(r => r.id === selectedRobotId) || robots[0]
 
@@ -138,6 +153,75 @@ const Dashboard = () => {
       }
     }
   }, [token])
+
+  /**
+   * Telemetry Subscription: Real-time telemetry data from selected robot
+   * Subscribes to SSE stream for live telemetry updates
+   */
+  useEffect(() => {
+    // Clean up previous subscription
+    if (telemetrySubscriptionRef.current) {
+      telemetrySubscriptionRef.current.close()
+      telemetrySubscriptionRef.current = null
+    }
+
+    // Only subscribe if we have a selected robot and token
+    if (!selectedRobotId || !token) {
+      return
+    }
+
+    // Subscribe to telemetry stream
+    const subscription = subscribeToRobotTelemetry(
+      selectedRobotId,
+      token,
+      (telemetryData) => {
+        // Update telemetry state with received data
+        // Map backend telemetry fields to frontend state
+        setTelemetry(prev => ({
+          ...prev,
+          // Attitude
+          roll: telemetryData.roll ?? prev.roll,
+          pitch: telemetryData.pitch ?? prev.pitch,
+          yaw: telemetryData.yaw ?? prev.yaw,
+          // Speed & Altitude
+          airspeed: telemetryData.airspeed ?? telemetryData.airSpeed ?? prev.airspeed,
+          groundspeed: telemetryData.groundspeed ?? telemetryData.groundSpeed ?? telemetryData.ground_speed ?? prev.groundspeed,
+          altitude: telemetryData.altitude ?? telemetryData.alt ?? prev.altitude,
+          // Battery
+          voltage: telemetryData.voltage ?? telemetryData.batteryVoltage ?? prev.voltage,
+          current: telemetryData.current ?? telemetryData.batteryCurrent ?? telemetryData.amps ?? prev.current,
+          battery: telemetryData.battery ?? telemetryData.batteryPercent ?? telemetryData.batteryPercentage ?? prev.battery
+        }))
+
+        // Also update robot battery if provided
+        if (telemetryData.battery !== undefined) {
+          setRobots(prevRobots => 
+            prevRobots.map(robot => 
+              robot.id === selectedRobotId 
+                ? { ...robot, battery: telemetryData.battery }
+                : robot
+            )
+          )
+        }
+      },
+      (error) => {
+        if (import.meta.env.DEV) {
+          console.error('[Telemetry] Connection error:', error)
+        }
+        // Don't show toast for every error to avoid spam
+        // Connection will auto-reconnect
+      }
+    )
+
+    telemetrySubscriptionRef.current = subscription
+
+    // Cleanup on unmount or when robot changes
+    return () => {
+      if (subscription && subscription.close) {
+        subscription.close()
+      }
+    }
+  }, [selectedRobotId, token])
 
   /**
    * Start Cleaning Handler
@@ -412,66 +496,26 @@ const Dashboard = () => {
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Attitude Display */}
+                  <AttitudeDisplay 
+                    roll={telemetry.roll}
+                    pitch={telemetry.pitch}
+                    yaw={telemetry.yaw}
+                    label="Attitude"
+                  />
+
+                  {/* Groundspeed Display */}
+                  <SpeedAltitudeDisplay 
+                    groundspeed={telemetry.groundspeed}
+                    label="Groundspeed"
+                  />
+
                   {/* Battery Status */}
                   <BatteryStatus 
-                    battery={selectedRobot.battery} 
-                    label="Main Battery"
-                  />
-
-                  {/* Temperature */}
-                  <TemperatureGauge 
-                    temperature={selectedRobot.status === 'CLEANING' ? 45.5 : 28.3}
-                    min={20}
-                    max={85}
-                    warning={75}
-                    label="Water Temperature"
-                  />
-
-                  {/* Location */}
-                  <LocationTracker 
-                    location={selectedRobot.location}
-                    latitude={34.052235}
-                    longitude={-118.243683}
-                  />
-
-                  {/* Speed */}
-                  <SpeedMeter 
-                    speed={selectedRobot.status === 'CLEANING' ? 2.5 : 0}
-                    maxSpeed={5}
-                    unit="m/s"
-                  />
-
-                  {/* Depth Sensor */}
-                  <DepthSensor 
-                    depth={selectedRobot.status === 'CLEANING' ? 1.8 : 0.5}
-                    maxDepth={3}
-                    unit="m"
-                  />
-
-                  {/* System Health */}
-                  <SystemHealth 
-                    cpuUsage={selectedRobot.status === 'CLEANING' ? 65 : 15}
-                    memoryUsage={selectedRobot.status === 'CLEANING' ? 72 : 28}
-                    diskUsage={45}
-                    status={selectedRobot.status === 'MAINTENANCE' ? 'WARNING' : 'NORMAL'}
-                  />
-
-                  {/* Network Status */}
-                  <NetworkStatus 
-                    signalStrength={85}
-                    connectionType="WiFi 5GHz"
-                    latency={12}
-                    status="CONNECTED"
-                  />
-
-                  {/* Motor Status */}
-                  <MotorStatus 
-                    rpm={selectedRobot.status === 'CLEANING' ? 2450 : 0}
-                    maxRpm={3000}
-                    power={selectedRobot.status === 'CLEANING' ? 125 : 5}
-                    temperature={selectedRobot.status === 'CLEANING' ? 48 : 25}
-                    status={selectedRobot.status === 'CLEANING' ? 'RUNNING' : selectedRobot.status === 'MAINTENANCE' ? 'WARNING' : 'IDLE'}
-                    motorName="Main Propulsion"
+                    voltage={telemetry.voltage}
+                    current={telemetry.current}
+                    battery={telemetry.battery || selectedRobot.battery || 0}
+                    label="Battery"
                   />
                 </div>
               </div>

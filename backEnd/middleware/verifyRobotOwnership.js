@@ -3,8 +3,18 @@ const Robot = require(process.cwd() + "/schemas/Robot.js")
 async function run(req, res, next) {
 	let robotData
 
+	// Support both body (POST) and query (GET) parameters
+	const robotId = req.body.robotId || req.query.robotId
+
+	if (!robotId) {
+		res.status(400).send({
+			error: "Robot ID is required"
+		})
+		return
+	}
+
 	try {
-		robotData = await Robot.findOne({ robot_id: req.body.robotId })
+		robotData = await Robot.findOne({ robot_id: robotId })
 	} catch (error) {
 		console.error("Error updating robot status in database:", error)
 
